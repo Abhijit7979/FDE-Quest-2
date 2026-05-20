@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   FormsDataError,
@@ -22,10 +23,13 @@ import {
   type FormField,
 } from "@/lib/schema/definition";
 
+import { DraftOrientation } from "./draft-orientation";
 import { FieldList } from "./field-list";
 import { FieldPropertiesSheet } from "./field-property-sheet";
 import { LivePreview } from "./live-preview";
 import { PublishBar } from "./publish-bar";
+import { ReviewQueueBanner } from "./review-queue-banner";
+import { SketchReferencePanel } from "./sketch-reference-panel";
 
 type FormSummary = {
   id: string;
@@ -46,6 +50,8 @@ type Snapshot = {
   fields: FormField[];
   updatedAt: string;
 };
+
+type WorkspaceTab = "fields" | "preview";
 
 const AUTOSAVE_MS = 5000;
 
@@ -74,6 +80,7 @@ export function FormEditor({
   );
 
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>("fields");
 
   const [savePhase, setSavePhase] = useState<SavePhase>(
     definitionError ? "error" : "idle",
@@ -87,8 +94,8 @@ export function FormEditor({
     updatedAt: form.updated_at,
   });
 
-  // Validate the current definition. Errors are surfaced inline but do not
-  // block editing — they just prevent saves & publishing until resolved.
+  const isDraft = status === "draft";
+
   const validation = useMemo(() => {
     const result = DefinitionSchema.safeParse({ version: 1, fields });
     if (result.success) return { ok: true as const, error: null };
@@ -140,7 +147,6 @@ export function FormEditor({
     }
   }, [supabase, form.id, title, description, fields, validation]);
 
-  // Debounced autosave: 5s after the last edit, push to the server.
   useEffect(() => {
     if (!isDirty || !validation.ok) return;
     const handle = window.setTimeout(() => {
@@ -149,7 +155,6 @@ export function FormEditor({
     return () => window.clearTimeout(handle);
   }, [isDirty, validation.ok, doSave]);
 
-  // Warn on tab close if the user has unsaved edits.
   useEffect(() => {
     function onBeforeUnload(e: BeforeUnloadEvent) {
       if (isDirty) {
@@ -160,6 +165,19 @@ export function FormEditor({
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [isDirty]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
+        e.preventDefault();
+        if (isDirty && validation.ok && savePhase !== "saving") {
+          void doSave();
+        }
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isDirty, validation.ok, savePhase, doSave]);
 
   const selectedField = useMemo(
     () => fields.find((f) => f.id === selectedFieldId) ?? null,
@@ -179,6 +197,13 @@ export function FormEditor({
     [],
   );
 
+  const handleMarkReviewed = useCallback(
+    (id: string) => {
+      handleFieldPatch(id, { needs_review: false });
+    },
+    [handleFieldPatch],
+  );
+
   const onPublishedChange = useCallback(
     (next: {
       status: FormStatus;
@@ -192,11 +217,13 @@ export function FormEditor({
     [],
   );
 
+  const showSavePulse = isDirty && validation.ok && savePhase !== "saving";
+
   return (
-    <div className="mx-auto max-w-7xl space-y-6 anim-rise">
-      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div className="space-y-2 min-w-0">
-          <div className="flex items-center gap-2">
+    <div className="mx-auto max-w-7xl space-y-6">
+      <div className="sticky top-14 z-30 -mx-6 md:-mx-8 px-6 md:px-8 py-3 border-b bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70 anim-rise">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 min-w-0">
             <Button
               variant="ghost"
               size="icon-sm"
@@ -204,39 +231,27 @@ export function FormEditor({
             >
               <ArrowLeft />
             </Button>
-            <p className="font-mono-tech uppercase tracking-[0.22em] text-[11px] text-muted-foreground">
-              / 03 · Edit form
-            </p>
+            <SaveIndicator
+              phase={savePhase}
+              isDirty={isDirty}
+              error={saveError}
+              lastSavedAt={saved.updatedAt}
+              prominent
+            />
           </div>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Untitled form"
-            className="h-auto !px-0 border-0 bg-transparent font-display text-3xl md:text-4xl tracking-tight leading-[1.05] shadow-none focus-visible:ring-0 focus-visible:border-0"
-          />
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Add a short description respondents will see."
-            className="resize-none border-0 bg-transparent !px-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0 focus-visible:border-0"
-            rows={2}
-          />
-        </div>
-
-        <div className="flex flex-col items-end gap-2">
-          <SaveIndicator
-            phase={savePhase}
-            isDirty={isDirty}
-            error={saveError}
-            lastSavedAt={saved.updatedAt}
-          />
           <Button
             size="sm"
             variant={isDirty ? "default" : "outline"}
             disabled={!isDirty || savePhase === "saving" || !validation.ok}
             onClick={() => void doSave()}
-            className="font-mono-tech uppercase tracking-[0.15em] text-[11px]"
+            className="relative font-mono-tech uppercase tracking-[0.15em] text-[11px] self-end sm:self-auto"
           >
+            {showSavePulse && (
+              <span
+                className="absolute -left-1 top-1/2 -translate-y-1/2 h-1.5 w-1.5 rounded-full bg-amber-500 anim-save-pulse"
+                aria-hidden
+              />
+            )}
             {savePhase === "saving" ? (
               <Loader2 className="animate-spin" />
             ) : (
@@ -245,7 +260,39 @@ export function FormEditor({
             Save
           </Button>
         </div>
+      </div>
+
+      <header className="space-y-2 min-w-0 anim-rise" style={{ animationDelay: "40ms" }}>
+        <p className="font-mono-tech uppercase tracking-[0.22em] text-[11px] text-muted-foreground">
+          / 03 · Edit form
+        </p>
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled form"
+          className="h-auto !px-0 border-0 bg-transparent font-display text-3xl md:text-4xl tracking-tight leading-[1.05] shadow-none focus-visible:ring-0 focus-visible:border-0"
+        />
+        <Textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Add a short description respondents will see."
+          className="resize-none border-0 bg-transparent !px-0 text-sm text-muted-foreground shadow-none focus-visible:ring-0 focus-visible:border-0"
+          rows={2}
+        />
       </header>
+
+      {isDraft && (
+        <DraftOrientation fields={fields} validationOk={validation.ok} />
+      )}
+
+      {isDraft && (
+        <ReviewQueueBanner
+          fields={fields}
+          selectedFieldId={selectedFieldId}
+          onSelectField={setSelectedFieldId}
+          onMarkReviewed={handleMarkReviewed}
+        />
+      )}
 
       <PublishBar
         formId={form.id}
@@ -256,6 +303,8 @@ export function FormEditor({
         sketchPath={form.sketch_path}
         isDirty={isDirty}
         validationOk={validation.ok}
+        fields={fields}
+        savePhase={savePhase}
         onBeforePublish={async () => {
           if (isDirty) return doSave();
           return true;
@@ -265,26 +314,70 @@ export function FormEditor({
       />
 
       {!validation.ok && (
-        <Card className="border-destructive/40 bg-destructive/5">
+        <Card className="border-destructive/40 bg-destructive/5 anim-rise">
           <CardContent className="flex items-start gap-3 p-4 text-sm text-destructive">
             <AlertCircle className="mt-0.5 size-4 shrink-0" />
             <div className="space-y-1">
               <p className="font-medium">Form has validation errors.</p>
-              <p className="text-destructive/80 text-xs">{validation.error}</p>
+              <p className="text-destructive/80 text-xs">
+                {validation.error}. Fix highlighted fields before saving or
+                publishing.
+              </p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <Card>
+      {isDraft && sketchUrl && <SketchReferencePanel sketchUrl={sketchUrl} />}
+
+      <div className="lg:hidden anim-rise" style={{ animationDelay: "120ms" }}>
+        <div
+          className="grid grid-cols-2 gap-1 rounded-lg border p-1 bg-muted/30"
+          role="tablist"
+          aria-label="Editor workspace"
+        >
+          {(["fields", "preview"] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={workspaceTab === tab}
+              onClick={() => setWorkspaceTab(tab)}
+              className={cn(
+                "rounded-md py-2 font-mono-tech uppercase tracking-[0.15em] text-[11px] transition-colors",
+                workspaceTab === tab
+                  ? "bg-brand text-brand-foreground"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab === "fields" ? "Fields" : "Preview"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div
+        className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] anim-rise"
+        style={{ animationDelay: "160ms" }}
+      >
+        <Card
+          className={cn(
+            "lg:block",
+            workspaceTab !== "fields" && "hidden lg:block",
+          )}
+        >
           <CardContent className="p-4 md:p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
-                Fields
-              </p>
-              <p className="font-mono-tech text-[10px] text-muted-foreground">
-                {fields.length} item{fields.length === 1 ? "" : "s"}
+            <div className="mb-4 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
+                  Fields
+                </p>
+                <p className="font-mono-tech text-[10px] text-muted-foreground">
+                  {fields.length} item{fields.length === 1 ? "" : "s"}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Click a field to edit type, options, and validation.
               </p>
             </div>
             <FieldList
@@ -296,7 +389,12 @@ export function FormEditor({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card
+          className={cn(
+            "lg:block",
+            workspaceTab !== "preview" && "hidden lg:block",
+          )}
+        >
           <CardContent className="p-4 md:p-5">
             <div className="mb-4 flex items-center justify-between">
               <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
@@ -310,6 +408,7 @@ export function FormEditor({
               title={title}
               description={description}
               fields={fields}
+              selectedFieldId={selectedFieldId}
             />
           </CardContent>
         </Card>
@@ -332,11 +431,13 @@ function SaveIndicator({
   isDirty,
   error,
   lastSavedAt,
+  prominent = false,
 }: {
   phase: SavePhase;
   isDirty: boolean;
   error: string | null;
   lastSavedAt: string;
+  prominent?: boolean;
 }) {
   let label: string;
   let tone: string;
@@ -358,7 +459,11 @@ function SaveIndicator({
   }
   return (
     <span
-      className={`font-mono-tech uppercase tracking-[0.18em] text-[10px] ${tone}`}
+      className={cn(
+        "font-mono-tech uppercase tracking-[0.18em] text-[10px]",
+        tone,
+        prominent && "text-[11px]",
+      )}
       aria-live="polite"
     >
       {label}

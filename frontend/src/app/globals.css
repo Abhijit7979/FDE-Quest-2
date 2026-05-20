@@ -273,4 +273,93 @@
   .anim-stripes-in {
     animation: rsi-stripe-slide 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
+
+  @keyframes rsi-review-pulse {
+    0%,
+    100% {
+      border-left-color: color-mix(in oklch, oklch(0.75 0.15 75) 40%, transparent);
+    }
+    50% {
+      border-left-color: oklch(0.75 0.15 75);
+    }
+  }
+
+  @keyframes rsi-save-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(0.85);
+    }
+  }
+
+  .anim-review-pulse {
+    animation: rsi-review-pulse 1.2s ease-out 2;
+  }
+
+  .anim-save-pulse {
+    animation: rsi-save-pulse 2s ease-in-out infinite;
+  }
+
+  .proofing-frame {
+    position: relative;
+  }
+  .proofing-frame::before,
+  .proofing-frame::after {
+    content: "";
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: color-mix(in oklch, var(--brand) 55%, transparent);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .proofing-frame::before {
+    top: 6px;
+    left: 6px;
+    border-top: 2px solid;
+    border-left: 2px solid;
+  }
+  .proofing-frame::after {
+    bottom: 6px;
+    right: 6px;
+    border-bottom: 2px solid;
+    border-right: 2px solid;
+  }
+
+  .review-rail-stripes {
+    --stripe: oklch(0.75 0.15 75);
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--stripe) 0 2px,
+      transparent 2px 8px
+    );
+  }
+
+  .sketch-panel-grid {
+    display: grid;
+    transition: grid-template-rows 0.35s cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+  .sketch-panel-grid[data-open="false"] {
+    grid-template-rows: 0fr;
+  }
+  .sketch-panel-grid[data-open="true"] {
+    grid-template-rows: 1fr;
+  }
+  .sketch-panel-grid > div {
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim-review-pulse,
+    .anim-rise,
+    .anim-save-pulse,
+    .sketch-panel-grid {
+      animation: none;
+      transition: none;
+    }
+  }
 }

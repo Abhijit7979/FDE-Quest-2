@@ -37,6 +37,15 @@ import {
   uploadSketch,
   validateSketchFile,
 } from "@/lib/storage/sketches";
+import type { FormField } from "@/lib/schema/definition";
+import { cn } from "@/lib/utils";
+
+import {
+  PublishReadiness,
+  buildReadinessChecks,
+  canPublish,
+  getPublishBlockReason,
+} from "./publish-readiness";
 
 type RegenPhase =
   | "idle"
@@ -54,6 +63,8 @@ export function PublishBar({
   sketchPath,
   isDirty,
   validationOk,
+  fields,
+  savePhase,
   onBeforePublish,
   onPublishedChange,
   onRegenerated,
@@ -66,6 +77,8 @@ export function PublishBar({
   sketchPath: string | null;
   isDirty: boolean;
   validationOk: boolean;
+  fields: FormField[];
+  savePhase: "idle" | "saving" | "saved" | "error";
   onBeforePublish: () => Promise<boolean>;
   onPublishedChange: (next: {
     status: FormStatus;
@@ -83,10 +96,26 @@ export function PublishBar({
 
   const shareUrl = publicSlug ? buildShareUrl(publicSlug) : null;
   const isPublished = status === "published";
+  const isDraft = status === "draft";
+
+  const readinessChecks = useMemo(
+    () =>
+      buildReadinessChecks({
+        fields,
+        validationOk,
+        isDirty,
+        savePhase,
+      }),
+    [fields, validationOk, isDirty, savePhase],
+  );
+
+  const publishReady = canPublish(readinessChecks);
+  const publishBlockReason = getPublishBlockReason(readinessChecks);
+  const allChecksPass = readinessChecks.every((c) => c.pass);
 
   async function handlePublish() {
-    if (!validationOk) {
-      toast.error("Resolve validation errors before publishing.");
+    if (!publishReady) {
+      toast.error(publishBlockReason ?? "Complete the checklist before publishing.");
       return;
     }
     setPublishing(true);
@@ -262,8 +291,17 @@ export function PublishBar({
   };
 
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="grid gap-4 p-4 md:p-5 md:grid-cols-[1fr_auto]">
+    <Card
+      className={cn(
+        "overflow-hidden",
+        isDraft && allChecksPass && "ring-1 ring-emerald-500/30 shadow-md shadow-emerald-500/10",
+      )}
+    >
+      <CardContent className="grid gap-4 p-4 md:p-5">
+        {isDraft && (
+          <PublishReadiness checks={readinessChecks} className="border-t-0 pt-0" />
+        )}
+      <div className="grid gap-4 md:grid-cols-[1fr_auto]">
         <div className="flex min-w-0 flex-col gap-3 md:flex-row md:items-center">
           {sketchUrl ? (
             <a
@@ -389,21 +427,33 @@ export function PublishBar({
               Unpublish
             </Button>
           ) : (
-            <Button
-              size="sm"
-              onClick={handlePublish}
-              disabled={publishing || !validationOk}
-              className="font-mono-tech uppercase tracking-[0.15em] text-[10px]"
-            >
-              {publishing ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <CheckCircle2 />
+            <div className="flex flex-col items-end gap-1.5">
+              <Button
+                size="sm"
+                onClick={handlePublish}
+                disabled={publishing || !publishReady}
+                title={publishBlockReason ?? undefined}
+                className={cn(
+                  "font-mono-tech uppercase tracking-[0.15em] text-[10px]",
+                  publishReady && "shadow-md shadow-brand/25",
+                )}
+              >
+                {publishing ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <CheckCircle2 />
+                )}
+                Publish
+              </Button>
+              {!publishReady && publishBlockReason && (
+                <p className="max-w-xs text-right text-[10px] text-amber-700 dark:text-amber-400 font-mono-tech leading-snug">
+                  {publishBlockReason}
+                </p>
               )}
-              Publish
-            </Button>
+            </div>
           )}
         </div>
+      </div>
       </CardContent>
     </Card>
   );

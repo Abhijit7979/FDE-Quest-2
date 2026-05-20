@@ -105,7 +105,7 @@ Backend conventions:
 - `frontend/.env.local` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus server-side `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Next.js reads from here.
 - `backend/.env` — see `backend/.env.example`. Always set: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SKETCHES_BUCKET=sketches`, `LLM_PROVIDER` + provider creds (`OPENAI_API_KEY` and/or `GITHUB_TOKEN` + `GITHUB_MODELS_ENDPOINT` + `GITHUB_MODEL`), `CORS_ORIGINS` (JSON list, e.g. `["http://localhost:3000"]`), `LOG_LEVEL`. `SUPABASE_JWT_SECRET` is optional — only needed for legacy HS256 projects; modern Supabase projects verify via JWKS without it.
 
-Keep `NEXT_PUBLIC_*` confined to `frontend/`. The service role key must never reach the browser.
+Keep `NEXT_PUBLIC_`* confined to `frontend/`. The service role key must never reach the browser.
 
 ## Frontend dev commands
 
@@ -125,3 +125,6 @@ No tests are wired up in `package.json` — don't invent a `test` script; ask th
 - Field IDs in `definition.fields[]` are stable string slugs (`f_1`, `f_2`, …). Response `answers` keys must match these IDs, not labels — labels can change without invalidating prior responses.
 - AI-generated fields that are low-confidence get `needs_review: true`; the editor surfaces these to the user. Do not strip the flag on save.
 - `public_slug` is unguessable (`nanoid(12)`). Never expose the internal `id` on the public form page.
+
+
+

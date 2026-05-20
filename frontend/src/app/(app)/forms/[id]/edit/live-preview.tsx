@@ -11,16 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 import type { FormField } from "@/lib/schema/definition";
 
 export function LivePreview({
   title,
   description,
   fields,
+  selectedFieldId = null,
 }: {
   title: string;
   description: string;
   fields: FormField[];
+  selectedFieldId?: string | null;
 }) {
   return (
     <div className="space-y-5 rounded-lg border bg-background p-4 md:p-5">
@@ -39,19 +42,37 @@ export function LivePreview({
         </p>
       ) : (
         <ul className="space-y-4">
-          {fields.map((field) => (
-            <li key={field.id} className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">
-                {field.label || "Untitled field"}
-                {field.required && (
-                  <span aria-label="required" className="text-destructive">
-                    *
-                  </span>
+          {fields.map((field) => {
+            const selected = field.id === selectedFieldId;
+            const needsReview = field.needs_review;
+            return (
+              <li
+                key={field.id}
+                className={cn(
+                  "space-y-1.5 rounded-md p-2 -mx-2 transition-all duration-200",
+                  selected &&
+                    "ring-2 ring-brand/50 bg-brand-tint/30 scale-[1.01]",
+                  needsReview &&
+                    "border border-dashed border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20",
                 )}
-              </Label>
-              <PreviewControl field={field} />
-            </li>
-          ))}
+              >
+                <Label className="flex flex-wrap items-center gap-1.5">
+                  {field.label || "Untitled field"}
+                  {field.required && (
+                    <span aria-label="required" className="text-destructive">
+                      *
+                    </span>
+                  )}
+                  {needsReview && (
+                    <span className="font-mono-tech uppercase tracking-[0.16em] text-[9px] text-amber-700 dark:text-amber-400">
+                      Unverified
+                    </span>
+                  )}
+                </Label>
+                <PreviewControl field={field} />
+              </li>
+            );
+          })}
           <li>
             <button
               type="button"
@@ -80,7 +101,6 @@ function PreviewControl({ field }: { field: FormField }) {
           type={inputTypeFor(field.type)}
           placeholder={field.placeholder ?? undefined}
           aria-label={field.label}
-          // Preview is non-submitting; allow typing for vibe-check only.
           defaultValue=""
         />
       );

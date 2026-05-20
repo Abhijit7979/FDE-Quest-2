@@ -160,7 +160,6 @@ function SortableRow({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: field.id });
-
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -169,11 +168,14 @@ function SortableRow({
 
   return (
     <li
+      id={`field-row-${field.id}`}
       ref={setNodeRef}
       style={style}
       data-selected={selected}
+      data-needs-review={field.needs_review ? "true" : undefined}
       className={cn(
         "group/field flex items-center gap-2 rounded-lg border bg-card p-2 transition-colors",
+        field.needs_review && "border-l-2 border-l-amber-500 pl-1.5 anim-review-pulse",
         selected
           ? "border-brand/50 bg-brand-tint/50"
           : "border-border hover:bg-muted/40",
