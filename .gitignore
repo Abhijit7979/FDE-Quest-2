@@ -1,0 +1,16 @@
+# Secrets — never commit
+.env
+.env.local
+.env.*.local
+
+# Dependencies & build artifacts
+node_modules/
+frontend/.next/
+frontend/out/
+backend/.venv/
+
+# OS / editor
+.DS_Store
+
+# Supabase CLI local state (optional but recommended)
+supabase/.temp/
