@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { FormStatusPill } from "@/components/form-status-pill";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Home" };
@@ -34,11 +35,16 @@ export default async function HomePage() {
     .select("*", { count: "exact", head: true })
     .eq("status", "published");
 
+  const { count: unpublishedCount } = await supabase
+    .from("forms")
+    .select("*", { count: "exact", head: true })
+    .in("status", ["draft", "archived"]);
+
   const { data: recentForms } = await supabase
     .from("forms")
     .select("id, title, status, updated_at")
     .order("updated_at", { ascending: false })
-    .limit(5);
+    .limit(6);
 
   const firstName = user?.email?.split("@")[0] ?? "there";
 
@@ -182,14 +188,24 @@ export default async function HomePage() {
           <SectionHeading
             tag="02"
             title="Recently touched"
-            subtitle="Your last five edits, freshest first."
+            subtitle="Your last six edits, freshest first."
           />
-          <Link
-            href="/forms/create"
-            className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline underline-offset-4"
-          >
-            Start a new one →
-          </Link>
+          <div className="hidden sm:flex items-center gap-4 shrink-0">
+            {(unpublishedCount ?? 0) > 6 && (
+              <Link
+                href="/forms/drafts"
+                className="text-sm font-medium text-muted-foreground hover:text-brand hover:underline underline-offset-4"
+              >
+                All drafts ({unpublishedCount}) →
+              </Link>
+            )}
+            <Link
+              href="/forms/create"
+              className="text-sm font-medium text-brand hover:underline underline-offset-4"
+            >
+              Start a new one →
+            </Link>
+          </div>
         </div>
 
         <Card className="mt-6 overflow-hidden p-0">
@@ -217,7 +233,7 @@ export default async function HomePage() {
                         })}
                       </p>
                     </div>
-                    <StatusPill status={form.status} />
+                    <FormStatusPill status={form.status} />
                     <ArrowUpRight className="size-4 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand" />
                   </Link>
                 </li>
@@ -302,45 +318,6 @@ function Stat({
         </p>
       </CardContent>
     </Card>
-  );
-}
-
-function StatusPill({ status }: { status: string | null }) {
-  const map: Record<
-    string,
-    { label: string; dot: string; text: string; bg: string }
-  > = {
-    published: {
-      label: "Published",
-      dot: "bg-emerald-500",
-      text: "text-emerald-700",
-      bg: "bg-emerald-50",
-    },
-    draft: {
-      label: "Draft",
-      dot: "bg-amber-500",
-      text: "text-amber-700",
-      bg: "bg-amber-50",
-    },
-    archived: {
-      label: "Archived",
-      dot: "bg-slate-400",
-      text: "text-slate-600",
-      bg: "bg-slate-50",
-    },
-  };
-  const s = map[status ?? "draft"] ?? map.draft;
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-mono-tech uppercase tracking-[0.16em] text-[10px]",
-        s.bg,
-        s.text,
-      )}
-    >
-      <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-      {s.label}
-    </span>
   );
 }
 

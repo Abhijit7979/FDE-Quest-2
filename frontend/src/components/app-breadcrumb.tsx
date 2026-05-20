@@ -6,6 +6,7 @@ const labels: Record<string, string> = {
   home: "Home",
   forms: "Forms",
   create: "Create",
+  drafts: "Drafts",
   responses: "Responses",
 };
 

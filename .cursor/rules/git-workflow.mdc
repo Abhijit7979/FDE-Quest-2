@@ -1,0 +1,53 @@
+---
+description: Git workflow — trunk-based main, Conventional Commits recommended
+globs:
+alwaysApply: false
+---
+
+# Git Workflow
+
+## Branch strategy (current + recommended)
+
+**Current:** Trunk-based on `main` — no long-lived `develop` branch.
+
+**Hybrid guidance:**
+
+- Branch from `main` for features: `feat/short-description` or `fix/short-description`.
+- Keep branches short-lived; merge via PR when collaborating.
+- Do not force-push `main` without explicit team approval.
+
+## Commits
+
+**Current:** Mixed — some `feat:` prefixes, some free-form.
+
+**Recommended (hybrid):** [Conventional Commits](https://www.conventionalcommits.org/) for clarity and changelog-friendly history:
+
+```
+feat(frontend): add public form submission page
+fix(backend): guard storage path ownership before generate job
+chore(supabase): extend public_forms view for new column
+docs: update PRD route table
+```
+
+Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`.
+
+## Pull requests
+
+- Summarize **why**, not only what changed.
+- Call out migration files, RLS policy changes, and env var additions.
+- Test plan: manual steps for auth, editor, `/f/[slug]`, and `/api/v1/forms/generate` when relevant.
+
+## Migrations
+
+- Never edit migrations already pushed to remote — add a new timestamped file.
+- Pair SQL changes with `supabase gen types typescript --linked > frontend/src/types/supabase.ts`.
+
+## Secrets
+
+- Never commit `.env`, `frontend/.env.local`, or `backend/.env`.
+- `.env.example` files document keys only — no real values.
+
+## Agent / user rules
+
+- Create commits or PRs only when the user explicitly asks.
+- Do not amend pushed commits unless requested.

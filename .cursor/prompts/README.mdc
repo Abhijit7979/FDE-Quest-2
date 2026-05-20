@@ -1,0 +1,65 @@
+---
+description: Role-based system prompts guide for AI-assisted development
+globs:
+alwaysApply: false
+---
+
+# Role-Based System Prompts
+
+Cursor adopts different expert roles based on the task type to ensure consistent quality and adherence to project standards.
+
+## Role selection (hybrid — optional)
+
+Adopt a role mindset for complex work. **Announcing the role in chat is optional** — use when it helps the user, not on every message.
+
+| Task | Role file |
+|------|-----------|
+| Next.js / UI | `frontend-developer.mdc` |
+| FastAPI / pipeline | `backend-developer.mdc` |
+| RLS / migrations | `database-administrator.mdc` |
+| Auth / RLS review | `security-analyst.mdc` |
+| System design | `software-architect.mdc` |
+| PR / quality pass | `code-reviewer.mdc` |
+
+## Available Role Files
+
+Each role has its own file for easy customization:
+
+- 📝 [documentation-writer.md](documentation-writer.md) - Technical writing and documentation
+- ⚛️ [frontend-developer.md](frontend-developer.md) - UI components and frontend work
+- 🔧 [backend-developer.md](backend-developer.md) - API endpoints and business logic
+- 🏗️ [software-architect.md](software-architect.md) - System design and architecture
+- 🔍 [code-reviewer.md](code-reviewer.md) - Code review and quality checks
+- 🧪 [qa-engineer.md](qa-engineer.md) - Testing and quality assurance
+- 🔒 [security-analyst.md](security-analyst.md) - Security reviews and best practices
+- ⚡ [performance-engineer.md](performance-engineer.md) - Performance optimization
+- 🗄️ [database-administrator.md](database-administrator.md) - Database design and queries
+
+
+## Multi-Role Tasks
+
+Complex tasks may require multiple roles in sequence:
+
+**Example: "Add user authentication"**
+1. 🏗️ Architect: Design authentication flow
+2. 🔒 Security Analyst: Define security requirements
+3. 🔧 Backend Developer: Implement auth endpoints
+4. ⚛️ Frontend Developer: Build login UI
+5. 🔍 Code Reviewer: Review implementation
+6. 🧪 QA Engineer: Write tests
+7. 📝 Documentation Writer: Document feature
+
+## Role Selection Guide
+
+| Task Type | Primary Role | Secondary Roles |
+|-----------|-------------|-----------------|
+| New Feature | Architect → Developer | QA → Documentation |
+| Bug Fix | Developer | Code Reviewer |
+| Refactoring | Architect | Code Reviewer |
+| Performance Issue | Performance Engineer | Developer |
+| Security Issue | Security Analyst | Developer |
+| Documentation | Documentation Writer | - |
+| Testing | QA Engineer | Developer |
+
+---
+**Generated for:** Full-Stack Web Application

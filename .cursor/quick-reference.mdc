@@ -1,0 +1,83 @@
+---
+description: Commands, paths, and environment variables for local development
+globs:
+alwaysApply: false
+---
+
+# Quick Reference
+
+## Frontend (`frontend/`)
+
+```bash
+npm run dev      # http://localhost:3000
+npm run build
+npm run start
+npm run lint
+```
+
+## Backend (`backend/`)
+
+```bash
+cd backend
+uv sync
+uv run uvicorn app.main:app --reload   # http://localhost:8000
+uv run python -c "from app.main import app"
+```
+
+## Supabase
+
+```bash
+supabase migration new <name>
+supabase db push
+supabase db reset
+supabase start    # Postgres :54322, API :54321, Studio :54323
+supabase gen types typescript --linked > frontend/src/types/supabase.ts
+```
+
+## Key paths
+
+| What | Where |
+|------|-------|
+| PRD | `PRD_claude.md` |
+| Project guide | `CLAUDE.md` |
+| Next.js 16 notes | `frontend/AGENTS.md` |
+| Session middleware | `frontend/src/proxy.ts` |
+| Auth actions | `frontend/src/app/(auth)/actions.ts` |
+| Supabase clients | `frontend/src/lib/supabase/` |
+| Public form | `frontend/src/app/f/[slug]/` |
+| LangGraph graph | `backend/app/pipeline/graph.py` |
+| Definition schema | `backend/app/schemas/definition.py` |
+| Migrations | `supabase/migrations/` |
+| DB types | `frontend/src/types/supabase.ts` |
+
+## Environment variables
+
+**Frontend (`frontend/.env.local`):**
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_URL` (server)
+- `SUPABASE_SERVICE_ROLE_KEY` (server only — never expose to client bundles)
+
+**Backend (`backend/.env` — see `.env.example`):**
+
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `SKETCHES_BUCKET=sketches`
+- `LLM_PROVIDER`, `OPENAI_API_KEY` (and/or GitHub Models vars)
+- `CORS_ORIGINS` (JSON array)
+- `LOG_LEVEL`
+- `SUPABASE_JWT_SECRET` (optional legacy HS256)
+
+## API quick map
+
+| Method | Path |
+|--------|------|
+| GET | `/api/v1/health` |
+| GET | `/api/v1/me` |
+| POST | `/api/v1/forms/generate` |
+| GET | `/api/v1/forms/generate/{job_id}` |
+| POST | `/api/v1/forms/validate` |
+
+## Public routes (no auth)
+
+`/`, `/login`, `/signup`, `/forgot-password`, `/auth/callback`, `/f/*`

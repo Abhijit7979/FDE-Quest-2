@@ -1,0 +1,63 @@
+---
+description: Code style — TypeScript/React frontend and Python/FastAPI backend conventions
+globs:
+alwaysApply: false
+---
+
+# Code Style
+
+## Hybrid principle
+
+- **Keep** established patterns in each tree (Next 16 App Router, FastAPI routers, Pydantic models).
+- **Adopt** consistent naming, typed APIs, and focused functions when adding new code.
+
+## Frontend (TypeScript / React)
+
+| Element | Convention |
+|---------|------------|
+| Components | PascalCase files (`FormStatusPill.tsx`) |
+| Hooks, utilities | camelCase (`useFormEditor`, `validateAnswers`) |
+| Routes | App Router folders; route groups `(auth)`, `(app)` |
+| Imports | `@/` path alias |
+| UI | shadcn + `@base-ui/react` — use `render={...}` on primitives, match `components/ui/` |
+| Auth mutations | Server Actions in `app/(auth)/actions.ts` only — do not duplicate on client |
+| Validation | Zod where client/server validation exists |
+| Types | Regenerated `src/types/supabase.ts` after schema changes |
+
+**Avoid:** class components, duplicating auth logic in client components, exposing `forms.id` on public pages.
+
+## Backend (Python)
+
+| Element | Convention |
+|---------|------------|
+| Modules / functions | `snake_case` |
+| Classes / Pydantic models | `PascalCase` |
+| Routes | `APIRouter` per file under `routers/`, mounted at `/api/v1` |
+| Settings | `Depends(get_settings)` or `get_settings()` — never `Settings()` directly |
+| Auth | `CurrentUser` dependency; forward JWT to `get_user_client(jwt)` for DB writes |
+| Pipeline nodes | Return partial `PipelineState`; raise on fatal, warnings on soft-fail |
+| Types | Type hints on public functions; Pydantic for request/response bodies |
+
+**Docstrings:** Use for non-obvious business logic (pipeline nodes, security checks). Not required on every one-liner.
+
+## Shared domain rules
+
+- `definition.fields[].id`: stable slugs `f_1`, `f_2`, …
+- `form_responses.answers` keys must match field IDs.
+- `needs_review: true` preserved on save for AI-flagged fields.
+
+## Error handling
+
+**Frontend:** Server Actions and route handlers return actionable errors; public form validation via shared validators (`lib/public-form/`).
+
+**Backend:**
+
+- Router: HTTPException with safe `detail` for clients.
+- Jobs: uncaught exceptions → `generation_jobs.status = 'failed'`, `error` truncated to 1000 chars.
+- Pipeline: distinguish fatal (raise) vs warning (state).
+
+**Best practice (hybrid):** Do not log tokens, JWTs, or service role keys. Prefer structured log context (job_id, form_id) without PII.
+
+## Comments
+
+Only for non-obvious invariants (RLS assumptions, security definer triggers, why service role is used). Prefer self-explanatory names.

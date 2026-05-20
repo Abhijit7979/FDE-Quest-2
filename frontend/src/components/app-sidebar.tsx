@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FilePlus2, Inbox, LogOut } from "lucide-react";
+import { Home, FilePlus2, Inbox, Layers, LogOut } from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { BrandMark } from "@/components/brand-mark";
 import {
@@ -30,8 +30,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const items = [
   { title: "Home", href: "/home", icon: Home, idx: "01" },
-  { title: "Create form", href: "/forms/create", icon: FilePlus2, idx: "02" },
-  { title: "Responses", href: "/forms/responses", icon: Inbox, idx: "03" },
+  { title: "Drafts", href: "/forms/drafts", icon: Layers, idx: "02" },
+  { title: "Create form", href: "/forms/create", icon: FilePlus2, idx: "03" },
+  { title: "Responses", href: "/forms/responses", icon: Inbox, idx: "04" },
 ];
 
 export function AppSidebar({ email }: { email: string }) {

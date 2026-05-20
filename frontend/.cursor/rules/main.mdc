@@ -1,0 +1,74 @@
+---
+description: Next.js 16 frontend — App Router, Supabase SSR, shadcn/Base UI
+globs: frontend/**
+alwaysApply: false
+---
+
+# Frontend Rules (Next.js 16)
+
+**Read first:** `frontend/AGENTS.md` and `frontend/node_modules/next/dist/docs/` — Next.js 16 differs from older versions.
+
+## Stack
+
+Next.js 16.2 · React 19 · TypeScript · Tailwind v4 · shadcn (`base-nova`) · `@base-ui/react` · `@supabase/ssr` · Zod
+
+## Routing
+
+| Group | Path | Purpose |
+|-------|------|---------|
+| `(auth)` | `src/app/(auth)/` | login, signup, forgot-password |
+| `(app)` | `src/app/(app)/` | authed shell (sidebar, home, forms) |
+| Public | `src/app/f/[slug]/` | respondent form — slug only, no internal id |
+| Callback | `src/app/auth/callback/route.ts` | Supabase code exchange |
+
+## Session / auth
+
+- **Gate:** `src/proxy.ts` exports `proxy` (not `middleware.ts`).
+- **Refresh:** `src/lib/supabase/proxy.ts` → `updateSession`.
+- **Public paths:** `/`, `/login`, `/signup`, `/forgot-password`, `/auth/callback`, `/f/*`, `_next/*`.
+- **Mutations:** Server Actions in `src/app/(auth)/actions.ts` only (`signIn`, `signUp`, `signOut`, `requestPasswordReset`).
+
+## Supabase clients
+
+| Context | Helper |
+|---------|--------|
+| Client Components | `createSupabaseBrowserClient()` |
+| Server Components, actions, routes | `await createSupabaseServerClient()` |
+
+Never use service role in client bundles. Server-only secrets stay in server components/actions.
+
+## UI components
+
+- Primitives in `src/components/ui/` use Base UI `render={...}` slot pattern — match when adding components.
+- Icons: `lucide-react`.
+- Toasts: `sonner` where used.
+
+## Forms domain
+
+- Load published definitions via `public_forms` (see `src/lib/data/public-form.ts`).
+- Validate answers with `src/lib/public-form/validate-answers.ts`; keys = field `id` (`f_*`).
+- Publish: set `public_slug` with `nanoid(12)` when status → `published`.
+- Preserve `needs_review` on fields when saving editor state.
+
+## Backend API calls
+
+Sketch generation hits FastAPI with `Authorization: Bearer <session JWT>`:
+
+```ts
+POST {API}/api/v1/forms/generate
+{ storage_path, form_id? }
+```
+
+Storage uploads: `sketches/{userId}/{formId or filename}.{ext}`.
+
+## Commands
+
+```bash
+npm run dev | build | start | lint
+```
+
+No `test` script — ask before adding.
+
+## PRD
+
+Routes and UX flows: `PRD_claude.md` section 9.

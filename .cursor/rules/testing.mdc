@@ -1,0 +1,40 @@
+---
+description: Testing policy — no framework wired; add only when requested
+globs:
+alwaysApply: false
+---
+
+# Testing
+
+## Current state
+
+- **Frontend:** No `test` script in `package.json`; no `*.test.*` / `*.spec.*` files.
+- **Backend:** No pytest suite wired in `pyproject.toml`.
+- **Policy (project):** Do **not** invent a test script or large test harness without asking the user first.
+
+## Hybrid guidance
+
+When tests are added (with user approval):
+
+| Layer | Suggested stack |
+|-------|-----------------|
+| Frontend | Vitest or Jest + React Testing Library; co-locate `*.test.tsx` near components |
+| Backend | `pytest` + `pytest-asyncio` for async routes and pipeline units |
+| E2E | Playwright (optional) for auth + `/f/[slug]` flows |
+
+## What to prioritize (when testing exists)
+
+1. `validate-answers` / `Definition` schema validation
+2. RLS-sensitive flows (mock Supabase or use local `supabase start`)
+3. LangGraph node unit tests with fixture images (small PNG)
+4. JWT / path ownership checks in `routers/forms.py`
+
+## Until then
+
+- Rely on `npm run lint`, `npm run build`, and manual QA.
+- Backend smoke: `uv run python -c "from app.main import app"`.
+- Document manual test steps in PR descriptions.
+
+## Coverage
+
+No coverage gate today. If introduced later, start with critical paths (auth, publish, public submit, generate job) rather than arbitrary 80% targets.

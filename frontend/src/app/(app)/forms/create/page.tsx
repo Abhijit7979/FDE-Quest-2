@@ -40,7 +40,7 @@ export default function CreateFormPage() {
       {/* HERO */}
       <header className="space-y-4">
         <p className="font-mono-tech uppercase tracking-[0.22em] text-[11px] text-muted-foreground">
-          / 02 · Create form
+          / 03 · Create form
         </p>
         <h1 className="font-display text-5xl md:text-6xl tracking-tight leading-[1]">
           Draw it. <em className="text-brand">Drop it.</em>

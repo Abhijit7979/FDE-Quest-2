@@ -1,0 +1,52 @@
+---
+description: Supabase migrations, RLS, public_forms view, sketches storage
+globs: supabase/**
+alwaysApply: false
+---
+
+# Supabase Rules
+
+## Workflow
+
+```bash
+supabase migration new <name>   # never edit pushed migrations
+supabase db push
+supabase db reset               # local rebuild
+supabase start
+```
+
+After schema changes:
+
+```bash
+supabase gen types typescript --linked > frontend/src/types/supabase.ts
+```
+
+## Tables & view
+
+| Object | Notes |
+|--------|-------|
+| `profiles` | Auto-created by `handle_new_user` trigger on `auth.users` — never client INSERT |
+| `forms` | Owner RLS; `updated_at` via `forms_set_updated_at` trigger |
+| `form_responses` | anon INSERT only when parent published |
+| `generation_jobs` | Owner-scoped job status |
+| `public_forms` | View: `id, public_slug, title, description, definition` where `status = 'published'` |
+
+## Invariants
+
+- `forms_published_requires_slug`: `public_slug IS NOT NULL` when `status = 'published'`.
+- Respondents: SELECT `public_forms` only — do not grant anon on `forms`.
+- New respondent-visible columns → `ALTER VIEW public_forms`, not looser RLS on `forms`.
+
+## Storage (`sketches` bucket)
+
+- Private; 10 MB; MIME jpeg/png/webp.
+- Path: `sketches/{auth.uid()}/{form_id_or_filename}.{ext}`
+- RLS: first segment = `auth.uid()::text`
+
+## Security definer
+
+`handle_new_user` runs as SECURITY DEFINER — keep migration changes reviewed.
+
+## Linked project
+
+See `supabase/.temp/linked-project.json` for project ref (local dev).

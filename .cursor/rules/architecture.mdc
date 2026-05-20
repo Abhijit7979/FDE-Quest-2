@@ -1,0 +1,92 @@
+---
+description: Sketch-to-Form architecture — three-tree layout, runtime topology, LangGraph, Supabase
+globs:
+alwaysApply: false
+---
+
+# Architecture
+
+## Runtime topology
+
+```
+Browser ──► Next.js (frontend/)     auth, editor, RLS-covered Supabase I/O
+              │
+              └── Bearer JWT ──► FastAPI (backend/)  sketch pipeline only
+                                    │
+                                    └── service role ──► Storage (sketches read)
+                                    └── user JWT client ──► Postgres (RLS)
+
+Respondent ──► /f/[slug] ──► public_forms view (anon SELECT)
+              └── INSERT form_responses (published forms only)
+```
+
+- **Frontend** owns auth (`@supabase/ssr` httpOnly cookies), form CRUD, and anything PostgREST RLS already allows.
+- **Backend** owns `POST /forms/generate`, job polling, `POST /forms/validate`. Images are never uploaded to FastAPI — only `storage_path` in JSON; backend downloads via service role.
+- **Supabase** owns schema, RLS, triggers, and the private `sketches` bucket.
+
+## LangGraph pipeline
+
+Path: `backend/app/pipeline/nodes/`
+
+```
+preprocess → vision_extract → structure → validate
+                              ↓ (if invalid & repairs left)
+                         repair → vision_extract (once)
+                              ↓
+                           persist
+```
+
+- `MAX_REPAIRS = 1` in `pipeline/graph.py`.
+- Hard failures: raise (job → `failed`).
+- Soft failures: append to `state["warnings"]`, continue; `needs_review` on low-confidence fields in `definition`.
+- Contract: `backend/app/schemas/definition.py` (`Definition` Pydantic model) ↔ `forms.definition` JSON.
+
+## Frontend structure (`frontend/src/`)
+
+| Area | Path | Notes |
+|------|------|-------|
+| Auth pages | `app/(auth)/` | login, signup, forgot-password |
+| App shell | `app/(app)/` | sidebar layout, home, forms |
+| Public forms | `app/f/[slug]/` | no internal `id` in UI |
+| Auth callback | `app/auth/callback/route.ts` | code exchange |
+| Session gate | `src/proxy.ts` exports `proxy` | **Not** `middleware.ts` |
+| Supabase | `lib/supabase/{client,server,proxy}.ts` | browser vs server vs session refresh |
+| UI primitives | `components/ui/` | Base UI `render={...}` slot pattern |
+
+Read `frontend/node_modules/next/dist/docs/` for Next.js 16 APIs before changing routing or data fetching.
+
+## Backend structure (`backend/app/`)
+
+| Module | Responsibility |
+|--------|----------------|
+| `main.py` | CORS, `/api/v1` routers, lifespan logging |
+| `config.py` | `get_settings()` only — `@lru_cache`, never raw `Settings()` |
+| `security.py` | JWKS-first JWT (`CurrentUser` dependency) |
+| `supabase_client.py` | `get_user_client(jwt)` vs `get_service_client()` |
+| `jobs.py` | BackgroundTasks job lifecycle |
+| `routers/` | Thin routers; register in `main.create_app()` |
+| `pipeline/` | LangGraph state + graph + nodes |
+| `schemas/` | `definition.py` (contract), `api.py` (HTTP shapes) |
+
+## Database (Supabase)
+
+Tables: `profiles`, `forms`, `form_responses`, `generation_jobs`. View: `public_forms` (published rows only).
+
+Storage path invariant:
+
+```
+sketches/{auth.uid()}/{form_id_or_filename}.{ext}
+```
+
+## API surface (backend)
+
+- `GET /api/v1/health`
+- `GET /api/v1/me`
+- `POST /api/v1/forms/generate` — `{ storage_path, form_id? }`
+- `GET /api/v1/forms/generate/{job_id}`
+- `POST /api/v1/forms/validate`
+
+## Change discipline
+
+- Minimize scope; match existing patterns in the tree you touch.
+- Cross-cutting schema/security changes: migration + types regen + update `public_forms` if respondents need new data.

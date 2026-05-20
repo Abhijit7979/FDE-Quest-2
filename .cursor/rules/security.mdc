@@ -1,0 +1,76 @@
+---
+description: Security — Supabase RLS, JWT, service role boundaries, public forms
+globs:
+alwaysApply: false
+---
+
+# Security
+
+## Authentication
+
+- **Frontend:** Supabase Auth via `@supabase/ssr` httpOnly cookies; session refresh in `lib/supabase/proxy.ts`.
+- **Backend:** Bearer JWT verified via Supabase JWKS (ES256/RS256); `SUPABASE_JWT_SECRET` only as legacy HS256 fallback.
+- Use `CurrentUser` on protected routes — do not reimplement JWT parsing.
+
+## Authorization (RLS)
+
+| Resource | Rule |
+|----------|------|
+| `forms` | Owner CRUD; anon blocked |
+| `public_forms` view | anon `SELECT` for published rows only |
+| `form_responses` | anon `INSERT` only if parent form `status = 'published'`; owner `SELECT`/`DELETE` |
+| `storage.objects` (`sketches`) | First path segment must equal `auth.uid()` |
+
+**Never** loosen `forms` RLS for public access — extend `public_forms` instead.
+
+## Service role (critical)
+
+`SUPABASE_SERVICE_ROLE_KEY`:
+
+- ✅ Backend read of `sketches` bucket (no user read policy for service)
+- ✅ Server-side ops that intentionally bypass RLS (rare; document why)
+- ❌ Browser, Client Components, or `NEXT_PUBLIC_*`
+- ❌ Table writes from backend — use `get_user_client(jwt)` so RLS applies
+
+Defense in depth: `_ensure_path_owned_by` in `routers/forms.py` before queueing generate jobs (storage download bypasses RLS).
+
+## Public form surface (`/f/[slug]`)
+
+- Expose only `public_slug` — never internal `forms.id` in UI or URLs.
+- Slug is `nanoid(12)` — unguessable; assign at publish.
+- Validate submissions server-side against `definition` (field IDs, types, required).
+
+## Input validation
+
+- **Frontend:** Zod / shared validators before insert.
+- **Backend:** Pydantic models (`Definition`, API payloads); `/forms/validate` for editor saves.
+- **Uploads:** MIME `image/jpeg|png|webp`, 10 MB cap, correct storage path layout.
+
+## Secrets & environment
+
+| File | Contains |
+|------|----------|
+| Root `.env` | Shared Supabase keys (dev) |
+| `frontend/.env.local` | `NEXT_PUBLIC_*` + server keys for Next |
+| `backend/.env` | See `backend/.env.example` |
+
+Never commit real keys. Never log JWTs, service role key, or LLM API keys.
+
+## API
+
+- CORS from `CORS_ORIGINS` in backend settings (JSON list).
+- CORS misconfiguration is a deployment risk — keep origins explicit.
+- Error responses: safe messages to clients; stack traces in server logs only.
+
+## Dependencies
+
+- Lockfiles: `frontend/package-lock.json`, `backend/uv.lock`.
+- Run `npm audit` / review advisories before releases.
+
+## Pre-merge security checklist
+
+- [ ] No secrets in diff
+- [ ] RLS policies unchanged or tightened (not bypassed)
+- [ ] `public_forms` updated if new respondent-visible columns
+- [ ] Service role not introduced to frontend
+- [ ] New public routes added to `proxy.ts` public paths if needed

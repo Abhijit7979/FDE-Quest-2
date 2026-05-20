@@ -1,0 +1,60 @@
+---
+description: Sketch-to-Form monorepo — quick context and pointers to detailed rules
+globs:
+alwaysApply: true
+---
+
+# Sketch-to-Form (must_quest_2) Cursor Rules
+
+> **Approach:** Hybrid — project invariants from `PRD_claude.md` / `CLAUDE.md`, plus industry best practices where they do not conflict.
+
+## Quick context
+
+**Product:** AI sketch-to-form builder (upload sketch → LangGraph → editable form → publish → collect responses).
+
+**Source of truth:** Read `PRD_claude.md` before non-trivial changes (user stories, routes, data model, API, pipeline). PRD wins over these rules when they disagree.
+
+**Repo layout (three sibling trees — never nest or merge):**
+
+| Path | Role |
+|------|------|
+| `frontend/` | Next.js 16 App Router, auth, editor, Supabase reads/writes under RLS |
+| `backend/` | FastAPI + LangGraph, `/api/v1/*`, JWT verification |
+| `supabase/` | Migrations, RLS, `sketches` Storage bucket |
+
+**Tech stack:**
+
+- **Frontend:** Next.js 16.2, React 19, TypeScript, Tailwind v4, shadcn + `@base-ui/react`, Supabase SSR
+- **Backend:** Python 3.12, FastAPI, LangGraph, Pydantic, `uv`
+- **Data:** Supabase Postgres + RLS + Storage
+
+**Nested rules (auto-scoped by path):**
+
+- `frontend/.cursor/rules/` — Next.js 16, Supabase clients, UI patterns
+- `backend/.cursor/rules/` — FastAPI, pipeline, Supabase client factories
+- `supabase/.cursor/rules/` — migrations, RLS, `public_forms` view
+
+## Roles (optional)
+
+For complex tasks, adopt a mindset from `.cursor/prompts/` (frontend, backend, security, database, etc.). Role announcement is **optional** — use when it helps clarity, not on every message.
+
+## Detailed guidelines
+
+- **Architecture:** `.cursor/rules/architecture.mdc`
+- **Code style:** `.cursor/rules/code-style.mdc`
+- **Git:** `.cursor/rules/git-workflow.mdc`
+- **Testing:** `.cursor/rules/testing.mdc`
+- **Security:** `.cursor/rules/security.mdc`
+- **Commands & paths:** `.cursor/quick-reference.mdc`
+
+## Non-negotiable invariants
+
+1. Never insert into `profiles` — `auth.users` trigger provisions it.
+2. Respondents read `public_forms` view only, never `forms` directly; extend the view for new public columns.
+3. `public_slug` = `nanoid(12)` at **publish** time only.
+4. Service role key never in the browser; backend service client only for reading `sketches` from Storage.
+5. Field answer keys use stable `f_*` IDs from `definition.fields[]`, not labels.
+6. Do not strip `needs_review: true` on AI-generated fields when saving.
+7. New schema → new migration file (never edit pushed migrations) → regen `frontend/src/types/supabase.ts`.
+
+**Also read:** root `CLAUDE.md`, `frontend/AGENTS.md` (Next.js 16 breaking changes).

@@ -44,12 +44,15 @@ export function buildReadinessChecks({
     },
     {
       id: "review",
-      label: "AI review complete",
+      label:
+        reviewCount === 0
+          ? "AI review complete"
+          : "AI flags cleared (optional)",
       pass: reviewCount === 0,
       failMessage:
         reviewCount === 1
-          ? "1 field still flagged for review."
-          : `${reviewCount} fields still flagged for review.`,
+          ? "1 field still flagged — you can publish anyway."
+          : `${reviewCount} fields flagged — you can publish anyway.`,
     },
     {
       id: "saved",
@@ -62,7 +65,8 @@ export function buildReadinessChecks({
   ];
 }
 
-const BLOCKING_CHECK_IDS = new Set(["fields", "valid", "review"]);
+// Review flags are advisory — creators can publish and fix labels live.
+const BLOCKING_CHECK_IDS = new Set(["fields", "valid"]);
 
 export function getPublishBlockReason(checks: ReadinessCheck[]): string | null {
   const failing = checks.filter(

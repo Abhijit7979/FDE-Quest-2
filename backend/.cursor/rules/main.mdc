@@ -1,0 +1,70 @@
+---
+description: FastAPI + LangGraph backend — JWT, Supabase clients, sketch pipeline
+globs: backend/**
+alwaysApply: false
+---
+
+# Backend Rules (FastAPI + LangGraph)
+
+Python 3.12 · `uv` · FastAPI · Pydantic · LangGraph · Supabase Python client
+
+## Layout (`backend/app/`)
+
+| Path | Role |
+|------|------|
+| `main.py` | App factory, CORS, `/api/v1` mount |
+| `config.py` | `get_settings()` — `@lru_cache` only |
+| `security.py` | JWKS JWT → `CurrentUser` |
+| `supabase_client.py` | `get_user_client(jwt)` / `get_service_client()` |
+| `jobs.py` | `run_generation_job` BackgroundTasks |
+| `routers/` | HTTP routers |
+| `pipeline/` | LangGraph state, graph, nodes |
+| `schemas/` | `definition.py`, `api.py` |
+
+## Supabase clients (critical)
+
+```python
+get_user_client(jwt)   # anon key + postgrest.auth(jwt) — ALL table writes, RLS applies
+get_service_client()   # service role — ONLY sketches bucket reads
+```
+
+Never use service client for `forms` / `generation_jobs` writes. Never insert `profiles`.
+
+## Routes
+
+Register new routers in `main.create_app()` under prefix `/api/v1`.
+
+Authenticated routes: `CurrentUser` dependency. When forwarding to DB: `_require_jwt` + `get_user_client(jwt)`.
+
+**Generate flow:** `POST /forms/generate` body `{ storage_path, form_id? }` — verify path ownership (`_ensure_path_owned_by`) before job queue; download image via service client.
+
+## LangGraph
+
+- Graph: `pipeline/graph.py` (`MAX_REPAIRS = 1`).
+- Nodes: `pipeline/nodes/` — return partial `PipelineState`.
+- Fatal: raise → job `failed`.
+- Soft: `state["warnings"]`, continue with flagged `definition`.
+- Prompts: `pipeline/prompts.py`.
+
+## Schemas
+
+- `Definition` in `schemas/definition.py` is the contract for `forms.definition`.
+- `/forms/validate` runs `Definition.model_validate` and maps Pydantic errors for the editor.
+
+## Settings
+
+Use `Depends(get_settings)` or `get_settings()` — never instantiate `Settings()` elsewhere.
+
+Env template: `backend/.env.example` (LLM provider, CORS, Supabase keys).
+
+## Commands
+
+```bash
+cd backend && uv sync
+uv run uvicorn app.main:app --reload
+uv run python -c "from app.main import app"
+```
+
+## PRD
+
+API surface and pipeline: `PRD_claude.md` sections 6–7.
