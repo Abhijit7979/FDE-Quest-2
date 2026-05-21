@@ -16,6 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
 import { ShareLinkActions } from "./share-link-actions";
+import { EmptyState } from "@/components/empty-state";
 
 export const metadata = { title: "Published" };
 
@@ -124,7 +125,11 @@ export default async function PublishedPage() {
         {published.length > 0 ? (
           <ul>
             {published.map((form, i) => (
-              <li key={form.id}>
+              <li
+                key={form.id}
+                className="anim-rise"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
                 {i > 0 && <Separator />}
                 <div className="group flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
                   <Link
@@ -136,7 +141,7 @@ export default async function PublishedPage() {
                       <p className="font-display text-lg leading-tight truncate">
                         {form.title || "Untitled form"}
                       </p>
-                      <p className="font-mono-tech uppercase tracking-[0.16em] text-[10px] text-muted-foreground">
+                      <p className="font-mono-tech uppercase tracking-[0.16em] text-[11px] text-muted-foreground">
                         Live since{" "}
                         {new Date(form.published_at).toLocaleString(
                           undefined,
@@ -239,7 +244,7 @@ function StatChip({
         )}
       />
       <div className="leading-tight">
-        <p className="font-mono-tech uppercase tracking-[0.18em] text-[9px] text-muted-foreground">
+        <p className="font-mono-tech uppercase tracking-[0.18em] text-[11px] text-muted-foreground">
           {label}
         </p>
         <p className="font-display text-2xl">{value.toLocaleString()}</p>
@@ -250,33 +255,18 @@ function StatChip({
 
 function EmptyPublished() {
   return (
-    <div className="relative overflow-hidden p-10 text-center">
-      <div
-        aria-hidden
-        className="absolute inset-0 blueprint-grid-fine opacity-40"
-      />
-      <div
-        aria-hidden
-        className="absolute -top-6 left-1/2 -translate-x-1/2 h-24 w-48 rsi-stripes opacity-30"
-      />
-      <div className="relative space-y-3">
-        <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
-          No published forms
-        </p>
-        <p className="font-display italic text-2xl">
-          Nothing <em className="text-brand">live</em> yet.
-        </p>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          Open a draft in the editor and publish when you&apos;re ready — it
-          will show up here with a shareable link.
-        </p>
+    <EmptyState
+      label="No published forms"
+      headline={<>Nothing <em className="text-brand">live</em> yet.</>}
+      description="Open a draft in the editor and publish when you're ready — it will show up here with a shareable link."
+      action={
         <Button
-          className="mt-2 font-mono-tech uppercase tracking-[0.15em] text-[12px]"
+          className="font-mono-tech uppercase tracking-[0.15em] text-[12px]"
           render={<Link href="/forms/drafts" />}
         >
           Browse drafts
         </Button>
-      </div>
-    </div>
+      }
+    />
   );
 }

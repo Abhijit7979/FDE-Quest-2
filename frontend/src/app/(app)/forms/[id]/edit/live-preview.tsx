@@ -66,7 +66,7 @@ export function LivePreview({
                     </span>
                   )}
                   {needsReview && (
-                    <span className="font-mono-tech uppercase tracking-[0.16em] text-[9px] text-amber-700 dark:text-amber-400">
+                    <span className="font-mono-tech uppercase tracking-[0.16em] text-[11px] text-amber-700 dark:text-amber-400">
                       Unverified
                     </span>
                   )}

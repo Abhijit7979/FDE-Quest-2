@@ -30,7 +30,7 @@ export function FormStatusPill({ status }: { status: FormStatus | string | null 
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-mono-tech uppercase tracking-[0.16em] text-[10px]",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border px-2.5 py-1 font-mono-tech uppercase tracking-[0.16em] text-[11px]",
         s.bg,
         s.text,
       )}

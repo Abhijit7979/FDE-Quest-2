@@ -115,7 +115,7 @@ export function AppSidebar({ email }: { email: string }) {
                   <span className="truncate text-[13px] font-medium">
                     {email}
                   </span>
-                  <span className="font-mono-tech uppercase tracking-[0.18em] text-[9px] text-muted-foreground">
+                  <span className="font-mono-tech uppercase tracking-[0.18em] text-[11px] text-muted-foreground">
                     Signed in
                   </span>
                 </div>

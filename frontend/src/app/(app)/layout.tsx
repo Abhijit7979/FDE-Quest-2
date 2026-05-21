@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppBreadcrumb } from "@/components/app-breadcrumb";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   SidebarInset,
   SidebarProvider,
@@ -34,9 +35,12 @@ export default async function AppLayout({
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Supabase · linked
             </span>
+            <ThemeToggle />
           </div>
         </header>
-        <main className="relative flex-1 p-6 md:p-8">{children}</main>
+        <main id="main-content" className="relative flex-1 p-6 md:p-8">
+          {children}
+        </main>
       </SidebarInset>
     </SidebarProvider>
   );

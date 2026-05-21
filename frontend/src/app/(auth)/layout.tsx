@@ -3,8 +3,8 @@ import { BrandMark, Stripes } from "@/components/brand-mark";
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-svh w-full grid lg:grid-cols-[1.05fr_1fr] bg-background">
-      {/* Brand panel */}
-      <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden bg-brand text-brand-foreground p-12 noise-overlay">
+      {/* Brand panel — always visible, condensed on mobile */}
+      <aside className="relative flex flex-col justify-between overflow-hidden bg-brand text-brand-foreground p-6 sm:p-8 lg:p-12 noise-overlay">
         <div
           aria-hidden
           className="absolute inset-0 blueprint-grid opacity-[0.18] [--brand:white]"
@@ -21,18 +21,35 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         />
 
         <div className="relative z-10 flex items-center gap-3">
-          <Stripes className="h-10 w-10 text-white" />
-          <div className="flex flex-col leading-none">
-            <span className="font-display italic text-2xl tracking-tight">
+          <Stripes className="h-8 w-8 sm:h-10 sm:w-10 text-white shrink-0" />
+          <div className="flex flex-col leading-none min-w-0">
+            <span className="font-display italic text-lg sm:text-2xl tracking-tight truncate">
               sketch·to·form
             </span>
-            <span className="mt-1.5 font-mono-tech uppercase tracking-[0.22em] text-[10px] text-white/70">
+            <span className="mt-1 font-mono-tech uppercase tracking-[0.22em] text-[10px] text-white/70 hidden sm:block">
               RSI · Engineering build
             </span>
           </div>
         </div>
 
-        <div className="relative z-10 max-w-md space-y-6">
+        {/* Mobile: compact tagline */}
+        <div className="relative z-10 lg:hidden mt-6 space-y-3">
+          <p className="font-mono-tech uppercase tracking-[0.25em] text-[11px] text-white/70">
+            01 — paper · 02 — vision · 03 — schema · 04 — live
+          </p>
+          <h2 className="font-display text-2xl sm:text-3xl leading-[1.1] tracking-tight text-balance">
+            Sketch on paper.
+            <br />
+            <em className="text-white/90">Ship it</em> in minutes.
+          </h2>
+          <p className="text-xs sm:text-sm text-white/75 leading-relaxed max-w-sm">
+            Photograph a hand-drawn form, and our vision pipeline rebuilds it as
+            a typed, validated, shareable artifact.
+          </p>
+        </div>
+
+        {/* Desktop: full hero copy */}
+        <div className="relative z-10 max-w-md space-y-6 hidden lg:block">
           <p className="font-mono-tech uppercase tracking-[0.25em] text-[11px] text-white/70">
             01 — paper · 02 — vision · 03 — schema · 04 — live
           </p>
@@ -47,11 +64,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           </p>
         </div>
 
-        <div className="relative z-10 flex items-end justify-between gap-6 text-xs text-white/60 font-mono-tech uppercase tracking-[0.18em]">
-          <span>© RSI · 2026</span>
-          <span className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
-            Pipeline · operational
+        <div className="relative z-10 flex items-end justify-between gap-4 text-xs text-white/60 font-mono-tech uppercase tracking-[0.18em]">
+          <span className="hidden sm:inline">© RSI · 2026</span>
+          <span className="flex items-center gap-2 ml-auto lg:ml-0">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse shrink-0" />
+            <span className="hidden sm:inline">Pipeline · operational</span>
+            <span className="sm:hidden">Live</span>
           </span>
         </div>
       </aside>
@@ -63,10 +81,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           className="pointer-events-none absolute inset-0 blueprint-grid-fine opacity-50"
         />
         <div className="relative w-full max-w-sm anim-rise">
-          {/* mobile-only brand */}
-          <div className="lg:hidden mb-10 flex justify-center">
-            <BrandMark />
-          </div>
           {children}
         </div>
       </main>

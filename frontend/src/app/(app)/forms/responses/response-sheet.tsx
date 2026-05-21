@@ -236,7 +236,7 @@ export function ResponseSheet({
                       )}
                     >
                       {col.letter ? (
-                        <span className="mb-0.5 block font-mono-tech text-[9px] font-semibold uppercase tracking-[0.2em] text-brand">
+                        <span className="mb-0.5 block font-mono-tech text-[11px] font-semibold uppercase tracking-[0.2em] text-brand">
                           {col.letter}
                         </span>
                       ) : null}

@@ -13,6 +13,7 @@ import { FormStatusPill } from "@/components/form-status-pill";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Drafts" };
@@ -116,7 +117,11 @@ export default async function DraftsPage() {
         {drafts.length > 0 ? (
           <ul>
             {drafts.map((form, i) => (
-              <li key={form.id}>
+              <li
+                key={form.id}
+                className="anim-rise"
+                style={{ animationDelay: `${i * 50}ms` }}
+              >
                 {i > 0 && <Separator />}
                 <Link
                   href={`/forms/${form.id}/edit`}
@@ -127,7 +132,7 @@ export default async function DraftsPage() {
                     <p className="font-display text-lg leading-tight truncate">
                       {form.title || "Untitled form"}
                     </p>
-                    <p className="font-mono-tech uppercase tracking-[0.16em] text-[10px] text-muted-foreground">
+                    <p className="font-mono-tech uppercase tracking-[0.16em] text-[11px] text-muted-foreground">
                       Updated{" "}
                       {new Date(form.updated_at).toLocaleString(undefined, {
                         dateStyle: "medium",
@@ -217,7 +222,7 @@ function StatChip({
         )}
       />
       <div className="leading-tight">
-        <p className="font-mono-tech uppercase tracking-[0.18em] text-[9px] text-muted-foreground">
+        <p className="font-mono-tech uppercase tracking-[0.18em] text-[11px] text-muted-foreground">
           {label}
         </p>
         <p className="font-display text-2xl">{value.toLocaleString()}</p>
@@ -228,34 +233,19 @@ function StatChip({
 
 function EmptyDrafts() {
   return (
-    <div className="relative overflow-hidden p-10 text-center">
-      <div
-        aria-hidden
-        className="absolute inset-0 blueprint-grid-fine opacity-40"
-      />
-      <div
-        aria-hidden
-        className="absolute -top-6 left-1/2 -translate-x-1/2 h-24 w-48 rsi-stripes opacity-30"
-      />
-      <div className="relative space-y-3">
-        <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
-          No unpublished forms
-        </p>
-        <p className="font-display italic text-2xl">
-          Your draft shelf is <em className="text-brand">empty</em>.
-        </p>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          Upload a sketch or publish from the editor — finished forms move off
-          this list automatically.
-        </p>
+    <EmptyState
+      label="No unpublished forms"
+      headline={<>Your draft shelf is <em className="text-brand">empty</em>.</>}
+      description="Upload a sketch or publish from the editor — finished forms move off this list automatically."
+      action={
         <Button
-          className="mt-2 font-mono-tech uppercase tracking-[0.15em] text-[12px]"
+          className="font-mono-tech uppercase tracking-[0.15em] text-[12px]"
           render={<Link href="/forms/create" />}
         >
           <FilePlus2 className="size-4" />
           Create from sketch
         </Button>
-      </div>
-    </div>
+      }
+    />
   );
 }

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { FormStatusPill } from "@/components/form-status-pill";
+import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Home" };
@@ -129,7 +130,7 @@ export default async function HomePage() {
                       />
                       <span
                         className={cn(
-                          "font-mono-tech text-[10px] tracking-[0.18em]",
+                          "font-mono-tech text-[11px] tracking-[0.18em]",
                           i === 0 ? "text-brand" : "text-muted-foreground/70",
                         )}
                       >
@@ -212,7 +213,11 @@ export default async function HomePage() {
           {recentForms && recentForms.length > 0 ? (
             <ul>
               {recentForms.map((form, i) => (
-                <li key={form.id}>
+                <li
+                  key={form.id}
+                  className="anim-rise"
+                  style={{ animationDelay: `${i * 60}ms` }}
+                >
                   {i > 0 && <Separator />}
                   <Link
                     href={`/forms/${form.id}/edit`}
@@ -225,7 +230,7 @@ export default async function HomePage() {
                       <p className="font-display text-lg leading-tight truncate">
                         {form.title || "Untitled form"}
                       </p>
-                      <p className="font-mono-tech uppercase tracking-[0.16em] text-[10px] text-muted-foreground mt-1">
+                      <p className="font-mono-tech uppercase tracking-[0.16em] text-[11px] text-muted-foreground mt-1">
                         Updated{" "}
                         {new Date(form.updated_at).toLocaleString(undefined, {
                           dateStyle: "medium",
@@ -240,7 +245,20 @@ export default async function HomePage() {
               ))}
             </ul>
           ) : (
-            <EmptyState />
+            <EmptyState
+              label="Empty workspace"
+              headline={<>No forms yet — let&apos;s draw one.</>}
+              description="Upload a sketch and we'll do the rest. Two-finger work, max."
+              action={
+                <Button
+                  className="font-mono-tech uppercase tracking-[0.15em] text-[12px]"
+                  render={<Link href="/forms/create" />}
+                >
+                  <FilePlus2 className="size-4" />
+                  Create your first form
+                </Button>
+              }
+            />
           )}
         </Card>
       </section>
@@ -298,7 +316,7 @@ function Stat({
       )}
       <CardContent className="relative space-y-4 p-5">
         <div className="flex items-center justify-between">
-          <span className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
+          <span className="font-mono-tech uppercase tracking-[0.22em] text-[11px] text-muted-foreground">
             {label}
           </span>
           <Icon
@@ -321,35 +339,3 @@ function Stat({
   );
 }
 
-function EmptyState() {
-  return (
-    <div className="relative p-10 text-center overflow-hidden">
-      <div
-        aria-hidden
-        className="absolute inset-0 blueprint-grid-fine opacity-40"
-      />
-      <div
-        aria-hidden
-        className="absolute -top-6 left-1/2 -translate-x-1/2 h-24 w-48 rsi-stripes opacity-30"
-      />
-      <div className="relative space-y-3">
-        <p className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
-          Empty workspace
-        </p>
-        <p className="font-display italic text-2xl">
-          No forms yet — let&apos;s draw one.
-        </p>
-        <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-          Upload a sketch and we&apos;ll do the rest. Two-finger work, max.
-        </p>
-        <Button
-          className="mt-2 font-mono-tech uppercase tracking-[0.15em] text-[12px]"
-          render={<Link href="/forms/create" />}
-        >
-          <FilePlus2 className="size-4" />
-          Create your first form
-        </Button>
-      </div>
-    </div>
-  );
-}
