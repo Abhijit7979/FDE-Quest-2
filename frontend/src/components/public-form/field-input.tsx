@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { FileUp, Loader2, Paperclip, X } from "lucide-react";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,17 +17,27 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import type { FormField } from "@/lib/schema/definition";
+import {
+  ALLOWED_RESPONSE_MIME,
+  formatFileSize,
+  isUploadedFileAnswer,
+  uploadResponseFile,
+} from "@/lib/storage/response-uploads";
 
 export function PublicFieldInput({
   field,
   value,
   onChange,
   error,
+  formId,
+  supabase,
 }: {
   field: FormField;
   value: unknown;
   onChange: (next: unknown) => void;
   error?: string;
+  formId: string;
+  supabase: SupabaseClient;
 }) {
   const errorId = error ? `${field.id}-error` : undefined;
 
@@ -44,6 +58,8 @@ export function PublicFieldInput({
         onChange={onChange}
         errorId={errorId}
         invalid={Boolean(error)}
+        formId={formId}
+        supabase={supabase}
       />
       {error && (
         <p id={errorId} role="alert" className="text-xs text-destructive">
@@ -60,12 +76,16 @@ function FieldControl({
   onChange,
   errorId,
   invalid,
+  formId,
+  supabase,
 }: {
   field: FormField;
   value: unknown;
   onChange: (next: unknown) => void;
   errorId?: string;
   invalid: boolean;
+  formId: string;
+  supabase: SupabaseClient;
 }) {
   const aria = {
     id: field.id,
@@ -193,9 +213,117 @@ function FieldControl({
           </SelectContent>
         </Select>
       );
+    case "file_upload":
+      return (
+        <FileUploadControl
+          field={field}
+          value={value}
+          onChange={onChange}
+          errorId={errorId}
+          invalid={invalid}
+          formId={formId}
+          supabase={supabase}
+        />
+      );
     default:
       return null;
   }
+}
+
+function FileUploadControl({
+  field,
+  value,
+  onChange,
+  errorId,
+  invalid,
+  formId,
+  supabase,
+}: {
+  field: FormField;
+  value: unknown;
+  onChange: (next: unknown) => void;
+  errorId?: string;
+  invalid: boolean;
+  formId: string;
+  supabase: SupabaseClient;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const current = isUploadedFileAnswer(value) ? value : null;
+
+  async function handleFile(file: File | undefined) {
+    if (!file) return;
+    setLocalError(null);
+    setBusy(true);
+    try {
+      const uploaded = await uploadResponseFile(supabase, formId, file);
+      onChange(uploaded);
+    } catch (err) {
+      onChange(undefined);
+      setLocalError(
+        err instanceof Error ? err.message : "Upload failed. Try again.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (current) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border bg-card px-3 py-2 text-sm">
+        <Paperclip className="size-4 shrink-0 text-muted-foreground" />
+        <span className="min-w-0 flex-1 truncate">{current.name}</span>
+        {current.size > 0 && (
+          <span className="shrink-0 font-mono-tech text-[10px] text-muted-foreground">
+            {formatFileSize(current.size)}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={() => onChange(undefined)}
+          className="shrink-0 rounded p-0.5 text-muted-foreground hover:text-destructive"
+          aria-label="Remove file"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <label
+        className={cn(
+          "flex min-h-11 cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted/40",
+          invalid && "border-destructive",
+          busy && "cursor-progress opacity-70",
+        )}
+      >
+        {busy ? (
+          <Loader2 className="size-4 shrink-0 animate-spin" />
+        ) : (
+          <FileUp className="size-4 shrink-0" />
+        )}
+        <span>{busy ? "Uploading…" : "Choose an image or PDF"}</span>
+        <input
+          id={field.id}
+          type="file"
+          accept={ALLOWED_RESPONSE_MIME.join(",")}
+          className="sr-only"
+          aria-invalid={invalid}
+          aria-describedby={errorId}
+          disabled={busy}
+          onChange={(e) => {
+            void handleFile(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+      </label>
+      {localError && (
+        <p className="text-xs text-destructive">{localError}</p>
+      )}
+    </div>
+  );
 }
 
 function stringValue(value: unknown): string {

@@ -1,4 +1,5 @@
 import type { FormField } from "@/lib/schema/definition";
+import { isUploadedFileAnswer } from "@/lib/storage/response-uploads";
 
 export type FieldErrors = Record<string, string>;
 
@@ -6,6 +7,7 @@ function isBlank(value: unknown): boolean {
   if (value === null || value === undefined) return true;
   if (typeof value === "string") return value.trim().length === 0;
   if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === "object") return !isUploadedFileAnswer(value);
   return false;
 }
 
@@ -66,6 +68,12 @@ export function validateAnswers(
         }
         break;
       }
+      case "file_upload": {
+        if (!isUploadedFileAnswer(raw)) {
+          errors[field.id] = "Upload a valid file.";
+        }
+        break;
+      }
       default:
         break;
     }
@@ -101,6 +109,17 @@ export function normalizeAnswers(
         out[field.id] = Array.isArray(raw)
           ? raw.map((v) => String(v))
           : [];
+        break;
+      case "file_upload":
+        // Persist only the known keys — never the raw File or extra junk.
+        if (isUploadedFileAnswer(raw)) {
+          out[field.id] = {
+            path: raw.path,
+            name: raw.name,
+            size: raw.size,
+            mime: raw.mime,
+          };
+        }
         break;
       default:
         out[field.id] = raw;

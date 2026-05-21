@@ -1,6 +1,11 @@
 from typing import Any, TypedDict
 
 
+class ProcessedImage(TypedDict):
+    bytes: bytes
+    mime: str
+
+
 class PipelineState(TypedDict, total=False):
     """
     State passed between LangGraph nodes for a single sketch-to-form run.
@@ -12,9 +17,12 @@ class PipelineState(TypedDict, total=False):
     form_id: str
     owner_id: str
     user_jwt: str
-    storage_path: str
+    storage_path: str | None
+    storage_paths: list[str]
+    description: str | None
 
     # preprocess
+    images: list[ProcessedImage]
     image_bytes: bytes
     image_mime: str
 

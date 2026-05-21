@@ -157,7 +157,8 @@ export function FieldPropertiesSheet({
 
               {!OPTION_FIELD_TYPES.has(field.type) &&
                 field.type !== "yes_no" &&
-                field.type !== "date" && (
+                field.type !== "date" &&
+                field.type !== "file_upload" && (
                   <div className="space-y-2">
                     <Label htmlFor="field-placeholder">Placeholder</Label>
                     <Input

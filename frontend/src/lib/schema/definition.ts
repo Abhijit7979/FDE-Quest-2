@@ -14,6 +14,7 @@ export const FIELD_TYPES = [
   "dropdown",
   "date",
   "yes_no",
+  "file_upload",
 ] as const;
 
 export type FieldType = (typeof FIELD_TYPES)[number];
@@ -35,6 +36,7 @@ export const FIELD_TYPE_LABEL: Record<FieldType, string> = {
   dropdown: "Dropdown",
   date: "Date",
   yes_no: "Yes / No",
+  file_upload: "File upload",
 };
 
 export const FormFieldSchema = z

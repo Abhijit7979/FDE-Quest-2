@@ -12,7 +12,8 @@ export type FormFieldType =
   | "multi_choice"
   | "dropdown"
   | "date"
-  | "yes_no";
+  | "yes_no"
+  | "file_upload";
 
 export type FormField = {
   id: string;
@@ -92,9 +93,17 @@ async function call<T>(
   return (await res.json()) as T;
 }
 
+export type GenerateFormBody = {
+  storage_paths?: string[];
+  /** @deprecated Prefer storage_paths */
+  storage_path?: string;
+  description?: string;
+  form_id?: string;
+};
+
 export function generateForm(
   supabase: SupabaseClient,
-  body: { storage_path: string; form_id?: string },
+  body: GenerateFormBody,
 ): Promise<GenerateResponse> {
   return call<GenerateResponse>(supabase, "/forms/generate", {
     method: "POST",

@@ -88,6 +88,7 @@ export type Database = {
           public_slug: string | null
           published_at: string | null
           sketch_path: string | null
+          sketch_paths: string[] | null
           status: Database["public"]["Enums"]["form_status"]
           title: string
           updated_at: string
@@ -101,6 +102,7 @@ export type Database = {
           public_slug?: string | null
           published_at?: string | null
           sketch_path?: string | null
+          sketch_paths?: string[] | null
           status?: Database["public"]["Enums"]["form_status"]
           title?: string
           updated_at?: string
@@ -114,6 +116,7 @@ export type Database = {
           public_slug?: string | null
           published_at?: string | null
           sketch_path?: string | null
+          sketch_paths?: string[] | null
           status?: Database["public"]["Enums"]["form_status"]
           title?: string
           updated_at?: string

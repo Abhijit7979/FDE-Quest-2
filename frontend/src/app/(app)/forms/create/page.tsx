@@ -48,9 +48,9 @@ export default function CreateFormPage() {
           Done.
         </h1>
         <p className="text-sm text-muted-foreground max-w-xl leading-relaxed">
-          Upload a hand-drawn or printed form and our pipeline will extract every
-          field — radios, checkboxes, text inputs, the lot — into a typed schema
-          you can edit and publish.
+          Add up to five photos, capture with your camera, or describe the form
+          in words — then confirm before our pipeline extracts every field into
+          a typed schema you can edit and publish.
         </p>
       </header>
 

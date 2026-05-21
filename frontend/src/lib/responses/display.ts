@@ -1,4 +1,5 @@
 import { coerceDefinition, type Definition, type FormField } from "@/lib/schema/definition";
+import { isUploadedFileAnswer } from "@/lib/storage/response-uploads";
 
 export type LabeledAnswer = {
   fieldId: string;
@@ -33,6 +34,10 @@ export function formatAnswerValue(field: FormField, raw: unknown): string {
   if (field.type === "yes_no") {
     if (raw === true || raw === "true" || raw === "yes") return "Yes";
     if (raw === false || raw === "false" || raw === "no") return "No";
+  }
+
+  if (field.type === "file_upload") {
+    return isUploadedFileAnswer(raw) ? raw.name : "—";
   }
 
   return String(raw);

@@ -24,6 +24,10 @@ def _coerce_field(raw: dict[str, Any], index: int, warnings: list[str]) -> dict[
         "boolean": FieldType.YES_NO.value,
         "tel": FieldType.PHONE.value,
         "telephone": FieldType.PHONE.value,
+        "file": FieldType.FILE_UPLOAD.value,
+        "upload": FieldType.FILE_UPLOAD.value,
+        "attachment": FieldType.FILE_UPLOAD.value,
+        "image_upload": FieldType.FILE_UPLOAD.value,
     }
     ftype = aliases.get(ftype_raw, ftype_raw)
     try:

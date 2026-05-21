@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,6 +9,8 @@ import {
   ChevronRight,
   Download,
   ExternalLink,
+  Loader2,
+  Paperclip,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -16,13 +18,21 @@ import { toast } from "sonner";
 import { deleteResponse } from "@/app/(app)/forms/responses/actions";
 import type { FormResponseSheetResult } from "@/lib/data/responses";
 import {
-  buildResponsesCsv,
+  buildResponsesExport,
   buildSheetColumns,
+  downloadBlob,
   downloadCsv,
   sheetCellValue,
 } from "@/lib/responses/sheet";
+import { createZip, type ZipEntry } from "@/lib/responses/zip";
 import { Button } from "@/components/ui/button";
 import { FormStatusPill } from "@/components/form-status-pill";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  createResponseFileSignedUrl,
+  isUploadedFileAnswer,
+  RESPONSE_UPLOADS_BUCKET,
+} from "@/lib/storage/response-uploads";
 import { cn } from "@/lib/utils";
 
 function sheetHref(formId: string, page: number): string {
@@ -38,19 +48,81 @@ export function ResponseSheet({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [exporting, setExporting] = useState(false);
   const columns = useMemo(
     () => buildSheetColumns(sheet.form.definition),
     [sheet.form.definition],
   );
 
-  function onExport() {
-    const csv = buildResponsesCsv(sheet.form.title, sheet.form.definition, sheet.rows);
-    const slug = sheet.form.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .slice(0, 40);
-    downloadCsv(`${slug || "responses"}-page-${sheet.page}.csv`, csv);
-    toast.success("CSV downloaded");
+  async function onExport() {
+    if (exporting) return;
+    const { csv, uploads } = buildResponsesExport(
+      sheet.form.definition,
+      sheet.rows,
+    );
+    const slug =
+      sheet.form.title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .slice(0, 40) || "responses";
+
+    // No uploaded files on this page — ship a plain CSV as before.
+    if (uploads.length === 0) {
+      downloadCsv(`${slug}-page-${sheet.page}.csv`, csv);
+      toast.success("CSV downloaded");
+      return;
+    }
+
+    // Bundle the CSV together with every referenced upload into one ZIP.
+    setExporting(true);
+    const toastId = toast.loading(
+      `Bundling CSV + ${uploads.length} file${uploads.length === 1 ? "" : "s"}…`,
+    );
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const fetched = await Promise.all(
+        uploads.map(async (up) => {
+          const { data, error } = await supabase.storage
+            .from(RESPONSE_UPLOADS_BUCKET)
+            .download(up.storagePath);
+          if (error || !data) return null;
+          return {
+            name: up.zipPath,
+            data: new Uint8Array(await data.arrayBuffer()),
+          } satisfies ZipEntry;
+        }),
+      );
+
+      const entries: ZipEntry[] = [
+        { name: "responses.csv", data: new TextEncoder().encode(csv) },
+      ];
+      let failed = 0;
+      for (const entry of fetched) {
+        if (entry) entries.push(entry);
+        else failed += 1;
+      }
+
+      downloadBlob(`${slug}-page-${sheet.page}.zip`, createZip(entries));
+
+      if (failed > 0) {
+        toast.warning(
+          `Downloaded — ${failed} file${failed === 1 ? "" : "s"} could not be retrieved`,
+          { id: toastId },
+        );
+      } else {
+        toast.success(
+          `CSV + ${uploads.length} file${uploads.length === 1 ? "" : "s"} downloaded`,
+          { id: toastId },
+        );
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not build the export.",
+        { id: toastId },
+      );
+    } finally {
+      setExporting(false);
+    }
   }
 
   function onExportAllHint() {
@@ -59,7 +131,7 @@ export function ResponseSheet({
         description: `Page ${sheet.page} of ${sheet.totalPages}. Use pagination to export other pages.`,
       });
     }
-    onExport();
+    void onExport();
   }
 
   function onDeleteRow(responseId: string) {
@@ -110,8 +182,13 @@ export function ResponseSheet({
             variant="outline"
             className="h-10 font-mono-tech text-[11px] uppercase tracking-[0.14em]"
             onClick={onExportAllHint}
+            disabled={exporting}
           >
-            <Download className="size-4" />
+            {exporting ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
             Export CSV
           </Button>
           <Button
@@ -206,15 +283,20 @@ export function ResponseSheet({
                                 timeStyle: "short",
                               },
                             )}
-                          {col.key === "field" && (
-                            <span className="line-clamp-4 break-words">
-                              {sheetCellValue(col.field, row.answers) || (
-                                <span className="text-muted-foreground/50">
-                                  —
-                                </span>
-                              )}
-                            </span>
-                          )}
+                          {col.key === "field" &&
+                            (col.field.type === "file_upload" ? (
+                              <ResponseFileCell
+                                value={row.answers[col.field.id]}
+                              />
+                            ) : (
+                              <span className="line-clamp-4 break-words">
+                                {sheetCellValue(col.field, row.answers) || (
+                                  <span className="text-muted-foreground/50">
+                                    —
+                                  </span>
+                                )}
+                              </span>
+                            ))}
                         </td>
                       ))}
                       <td className="border border-border/70 px-1 py-1 align-middle">
@@ -301,6 +383,47 @@ export function ResponseSheet({
         </div>
       )}
     </div>
+  );
+}
+
+function ResponseFileCell({ value }: { value: unknown }) {
+  const [busy, setBusy] = useState(false);
+
+  if (!isUploadedFileAnswer(value)) {
+    return <span className="text-muted-foreground/50">—</span>;
+  }
+  const file = value;
+
+  async function openFile() {
+    setBusy(true);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const url = await createResponseFileSignedUrl(supabase, file.path);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Could not open the file.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void openFile()}
+      disabled={busy}
+      className="inline-flex max-w-full items-center gap-1.5 text-brand hover:underline disabled:opacity-60"
+      title={`Open ${file.name}`}
+    >
+      {busy ? (
+        <Loader2 className="size-3.5 shrink-0 animate-spin" />
+      ) : (
+        <Paperclip className="size-3.5 shrink-0" />
+      )}
+      <span className="truncate">{file.name}</span>
+    </button>
   );
 }
 

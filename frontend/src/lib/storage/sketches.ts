@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const SKETCHES_BUCKET = "sketches";
 export const MAX_SKETCH_BYTES = 10 * 1024 * 1024;
+export const MAX_SKETCHS_PER_FORM = 5;
 export const ALLOWED_SKETCH_MIME = [
   "image/jpeg",
   "image/png",

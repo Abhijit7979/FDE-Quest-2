@@ -1,5 +1,7 @@
 "use client";
 
+import { FileUp } from "lucide-react";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -165,6 +167,13 @@ function PreviewControl({ field }: { field: FormField }) {
             ))}
           </SelectContent>
         </Select>
+      );
+    case "file_upload":
+      return (
+        <div className="flex min-h-11 items-center gap-2 rounded-md border border-dashed px-3 py-2 text-sm text-muted-foreground">
+          <FileUp className="size-4" />
+          Choose an image or PDF
+        </div>
       );
     default:
       return null;

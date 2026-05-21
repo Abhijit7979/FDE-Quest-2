@@ -15,6 +15,7 @@ class FieldType(StrEnum):
     DROPDOWN = "dropdown"
     DATE = "date"
     YES_NO = "yes_no"
+    FILE_UPLOAD = "file_upload"
 
 
 OPTION_TYPES: frozenset[FieldType] = frozenset(

@@ -48,6 +48,14 @@ sketches/{auth.uid()}/{form_id_or_filename}.{ext}
 
 Browser uploads must follow that layout or RLS will reject. FastAPI reads sketches with the service role key, which bypasses RLS — no separate read policy exists for the backend.
 
+A second private bucket `response-uploads` (10 MB, `image/jpeg|png|webp` + `application/pdf`) holds files submitted by **respondents** through `file_upload` fields:
+
+```
+response-uploads/{form_id}/{uuid}.{ext}
+```
+
+Its RLS differs from `sketches`: the INSERT policy is granted to `anon` (respondents are unauthenticated) and gates on the `public_forms` view, so uploads are allowed only into a *published* form's folder. SELECT/DELETE are owner-only (`forms.owner_id = auth.uid()`). The form owner views submitted files via short-lived signed URLs. Helpers live in `frontend/src/lib/storage/response-uploads.ts`; the answer stored in `form_responses.answers` for an upload field is `{ path, name, size, mime }`.
+
 ## Runtime topology (per PRD §4)
 
 - **Next.js (App Router) + shadcn/ui** — in `frontend/`. Owns auth (via `@supabase/ssr` httpOnly cookies), the editor, and all direct Supabase reads/writes that RLS already covers.
@@ -87,7 +95,8 @@ Module layout under `backend/app/`:
 - `supabase_client.py` — two factories, and the distinction matters:
   - `get_user_client(jwt)` — anon-key client with `postgrest.auth(jwt)` so PostgREST sees `auth.uid()` and RLS applies. **All `forms` / `generation_jobs` writes go through this.** Constructed per-request (not cached).
   - `get_service_client()` — service-role client, bypasses RLS. The *only* sanctioned use is reading the private `sketches` bucket (no read policy exists for the backend). Don't use it for table writes.
-- `jobs.py` — `run_generation_job` is the BackgroundTasks entrypoint. It updates `generation_jobs.status` through the `pending → processing → completed|failed` lifecycle and swallows exceptions into the `failed` state with `error = "{ExcType}: {msg}"[:1000]`. The job runs under the caller's JWT so RLS applies inside the graph.
+- `jobs.py` — `run_generation_job` is the job entrypoint. It updates `generation_jobs.status` through the `pending → processing → completed|failed` lifecycle, skips a job already `completed` (redelivery guard), and swallows exceptions into the `failed` state with `error = "{ExcType}: {msg}"[:1000]`. The job runs under the caller's JWT so RLS applies inside the graph. `routers/forms.py` dispatches it one of two ways per the `JOB_DISPATCH_MODE` setting: `background` (FastAPI BackgroundTasks — local dev) or `lambda` (`dispatch_to_lambda` async-invokes the worker Lambda — see `lambda_handlers.py`).
+- `lambda_handlers.py` — AWS Lambda entrypoints (one container image, two functions): `api_handler` wraps the FastAPI app via Mangum; `worker_handler` runs `run_generation_job`. Used only when deployed to Lambda — see `backend/DEPLOY_LAMBDA.md`. Local/container runs (`uvicorn`) ignore this module entirely.
 - `pipeline/` — `state.py` defines the `PipelineState` TypedDict (inputs `job_id`, `form_id`, `owner_id`, `user_jwt`, `storage_path`; progressively populated keys for image bytes, raw extraction, definition, validation_error, warnings, repair_count). `graph.py` compiles the LangGraph (`@lru_cache`d). `prompts.py` holds `SYSTEM_PROMPT` and `REPAIR_INSTRUCTION`. Add a node by dropping it into `pipeline/nodes/` and wiring it in `build_graph()`.
 - `schemas/` — `definition.py` is the canonical `Definition` Pydantic model (the contract written into `forms.definition`). `api.py` holds request/response shapes for the routers. The `/forms/validate` endpoint just runs `Definition.model_validate(payload.definition)` and reshapes Pydantic errors.
 - `routers/forms.py` — note `_ensure_path_owned_by` defense-in-depth: storage RLS already requires the first path segment to be the caller's `auth.uid()`, but because the *download* uses the service role (which bypasses RLS), the router re-checks before queueing the job.
@@ -103,7 +112,7 @@ Backend conventions:
 
 - Root `.env` — Supabase URL + anon + service role keys. Shared during local dev.
 - `frontend/.env.local` — `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, plus server-side `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`. Next.js reads from here.
-- `backend/.env` — see `backend/.env.example`. Always set: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SKETCHES_BUCKET=sketches`, `LLM_PROVIDER` + provider creds (`OPENAI_API_KEY` and/or `GITHUB_TOKEN` + `GITHUB_MODELS_ENDPOINT` + `GITHUB_MODEL`), `CORS_ORIGINS` (JSON list, e.g. `["http://localhost:3000"]`), `LOG_LEVEL`. `SUPABASE_JWT_SECRET` is optional — only needed for legacy HS256 projects; modern Supabase projects verify via JWKS without it.
+- `backend/.env` — see `backend/.env.example`. Always set: `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SKETCHES_BUCKET=sketches`, `LLM_PROVIDER` + provider creds (`OPENAI_API_KEY` and/or `GITHUB_TOKEN` + `GITHUB_MODELS_ENDPOINT` + `GITHUB_MODEL`), `CORS_ORIGINS` (JSON list, e.g. `["http://localhost:3000"]`), `LOG_LEVEL`. `SUPABASE_JWT_SECRET` is optional — only needed for legacy HS256 projects; modern Supabase projects verify via JWKS without it. `JOB_DISPATCH_MODE` defaults to `background` (in-process) and only needs `lambda` + `WORKER_FUNCTION_NAME` when deployed to Lambda.
 
 Keep `NEXT_PUBLIC_`* confined to `frontend/`. The service role key must never reach the browser.
 

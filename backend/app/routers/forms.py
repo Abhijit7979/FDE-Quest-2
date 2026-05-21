@@ -5,7 +5,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import ValidationError
 
-from app.jobs import run_generation_job
+from app.config import get_settings
+from app.jobs import dispatch_to_lambda, run_generation_job
 from app.schemas.api import (
     GenerateRequest,
     GenerateResponse,
@@ -40,6 +41,12 @@ def _ensure_path_owned_by(storage_path: str, user_id: str) -> None:
         )
 
 
+def _sketch_fields_for_paths(paths: list[str]) -> dict[str, Any]:
+    if not paths:
+        return {"sketch_path": None, "sketch_paths": None}
+    return {"sketch_path": paths[0], "sketch_paths": paths}
+
+
 @router.post(
     "/generate",
     response_model=GenerateResponse,
@@ -51,8 +58,10 @@ def generate_form(
     user: CurrentUser,
     jwt: Annotated[str, Depends(_require_jwt)],
 ) -> GenerateResponse:
-    _ensure_path_owned_by(payload.storage_path, user.id)
+    for path in payload.storage_paths:
+        _ensure_path_owned_by(path, user.id)
     sb = get_user_client(jwt)
+    sketch_fields = _sketch_fields_for_paths(payload.storage_paths)
 
     # Resolve or create the target form row.
     if payload.form_id:
@@ -71,16 +80,14 @@ def generate_form(
                 detail="form not found",
             )
         form_id: str = rows[0]["id"]
-        sb.table("forms").update({"sketch_path": payload.storage_path}).eq(
-            "id", form_id
-        ).execute()
+        sb.table("forms").update(sketch_fields).eq("id", form_id).execute()
     else:
         created = (
             sb.table("forms")
             .insert(
                 {
                     "owner_id": user.id,
-                    "sketch_path": payload.storage_path,
+                    **sketch_fields,
                     "title": "Untitled form",
                 }
             )
@@ -111,14 +118,20 @@ def generate_form(
         )
     job_id: str = job.data[0]["id"]
 
-    background.add_task(
-        run_generation_job,
-        job_id=job_id,
-        form_id=form_id,
-        owner_id=user.id,
-        user_jwt=jwt,
-        storage_path=payload.storage_path,
-    )
+    job_kwargs: dict[str, Any] = {
+        "job_id": job_id,
+        "form_id": form_id,
+        "owner_id": user.id,
+        "user_jwt": jwt,
+        "storage_paths": payload.storage_paths,
+        "description": payload.description,
+    }
+    if get_settings().job_dispatch_mode == "lambda":
+        # On Lambda the request env freezes after the response; hand the job to
+        # a separate worker Lambda instead of running it in this process.
+        dispatch_to_lambda(job_kwargs)
+    else:
+        background.add_task(run_generation_job, **job_kwargs)
     logger.info("queued job %s for form %s (owner=%s)", job_id, form_id, user.id)
 
     return GenerateResponse(job_id=job_id, form_id=form_id, status="pending")

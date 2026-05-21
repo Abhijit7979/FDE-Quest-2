@@ -41,6 +41,15 @@ class Settings(BaseSettings):
     )
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
 
+    # Job dispatch. "background" runs the pipeline in-process via FastAPI
+    # BackgroundTasks (local dev / a long-lived container). "lambda" async-
+    # invokes the worker Lambda — required on AWS Lambda, where the execution
+    # environment freezes once the HTTP response is sent.
+    job_dispatch_mode: str = Field(default="background", alias="JOB_DISPATCH_MODE")
+    worker_function_name: str | None = Field(
+        default=None, alias="WORKER_FUNCTION_NAME"
+    )
+
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

@@ -94,6 +94,8 @@ export function PublicForm({ form }: { form: PublicFormRecord }) {
                 <PublicFieldInput
                   field={field}
                   value={answers[field.id]}
+                  formId={form.id}
+                  supabase={supabase}
                   onChange={(next) => {
                     setAnswers((prev) => ({ ...prev, [field.id]: next }));
                     setFieldErrors((prev) => {

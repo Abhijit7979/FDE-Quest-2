@@ -1,0 +1,16 @@
+# Secrets — never bake into the image; supply via Lambda env vars instead.
+.env
+.env.*
+
+# Local virtualenv and caches.
+.venv
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# VCS and docs.
+.git/
+.gitignore
+*.md
