@@ -1,5 +1,12 @@
 # Deploying the backend to AWS Lambda
 
+> **Quick path:** run `./deploy_lambda.sh` from `backend/`. It is idempotent —
+> it performs every step below (ECR, IAM roles, image build/push, both
+> functions, env vars, Function URL) and re-running it redeploys after code
+> changes. Region is **`ap-south-1`**; CORS allows `https://fde-quest-2.vercel.app`.
+> The manual steps below document what the script does (note: they use
+> `us-east-1` as an example — the script uses `ap-south-1`).
+
 The backend runs as **two Lambda functions built from one container image**:
 
 ```
