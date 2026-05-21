@@ -1,18 +1,18 @@
 # Deploying the backend to AWS Lambda
 
 > **Quick path:** run `./deploy_lambda.sh` from `backend/`. It is idempotent —
-> it performs every step below (ECR, IAM roles, image build/push, both
-> functions, env vars, Function URL) and re-running it redeploys after code
-> changes. Region is **`ap-south-1`**; CORS allows `https://fde-quest-2.vercel.app`.
-> The manual steps below document what the script does (note: they use
-> `us-east-1` as an example — the script uses `ap-south-1`).
+> it performs every step below (S3 bucket, IAM roles, build, upload, both
+> functions, env vars, API Gateway) and re-running it redeploys after code
+> changes. Region is **`ap-south-1`**; CORS allows
+> `https://fde-quest-2.vercel.app` and `http://localhost:3000`.
 
-The backend runs as **two Lambda functions built from one container image**:
+The backend ships as a **zip package** (no Docker) and runs as **two Lambda
+functions built from one artifact**:
 
 ```
                    ┌─────────────────────────┐
   browser ─HTTPS─▶  │  API Lambda             │   FastAPI via Mangum
-                   │  app.lambda_handlers     │   (Function URL)
+ (via API Gateway) │  app.lambda_handlers     │   (API Gateway HTTP API)
                    │      .api_handler        │
                    └───────────┬─────────────┘
                                │ async invoke ("Event")
@@ -29,158 +29,122 @@ worker. The API request returns a `job_id` immediately; the frontend polls
 `GET /forms/generate/{job_id}` exactly as before. The API contract and the
 `pending → processing → completed|failed` lifecycle are unchanged.
 
-Why a container image: the langgraph/langchain dependency tree exceeds Lambda's
-250 MB zipped limit. Container images allow up to 10 GB.
+**Why a zip, not a container image:** the locked dependency tree is ~172 MB
+unzipped — under Lambda's 250 MB hard limit — so a plain zip works and no
+Docker daemon is needed. The artifact is ~65 MB zipped, which exceeds the
+50 MB direct-upload cap, so it is staged through an S3 bucket.
 
 ---
 
-## 1. Build & push the image to ECR
+## 1. S3 deployment bucket
 
-```bash
-cd backend
-ACCOUNT=$(aws sts get-caller-identity --query Account --output text)
-REGION=us-east-1
-REPO=sketch-to-form-api
+`sketch-to-form-lambda-<ACCOUNT_ID>` in `ap-south-1` holds the build artifact
+(`lambda-build.zip`). `create-function` / `update-function-code` read the code
+from S3.
 
-aws ecr create-repository --repository-name $REPO --region $REGION
-
-aws ecr get-login-password --region $REGION \
-  | docker login --username AWS --password-stdin $ACCOUNT.dkr.ecr.$REGION.amazonaws.com
-
-# --platform linux/amd64 is required when building on Apple Silicon.
-docker build --platform linux/amd64 -t $REPO .
-docker tag $REPO:latest $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest
-docker push $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest
-```
-
-## 2. Create the two functions
-
-Both point at the **same image**; they differ only in the CMD override.
-
-**Worker Lambda** (create this first — the API needs its name):
-
-```bash
-aws lambda create-function \
-  --function-name sketch-to-form-worker \
-  --package-type Image \
-  --code ImageUri=$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest \
-  --image-config '{"Command":["app.lambda_handlers.worker_handler"]}' \
-  --role arn:aws:iam::$ACCOUNT:role/sketch-to-form-worker-role \
-  --timeout 600 --memory-size 2048 \
-  --region $REGION
-```
-
-**API Lambda:**
-
-```bash
-aws lambda create-function \
-  --function-name sketch-to-form-api \
-  --package-type Image \
-  --code ImageUri=$ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest \
-  --image-config '{"Command":["app.lambda_handlers.api_handler"]}' \
-  --role arn:aws:iam::$ACCOUNT:role/sketch-to-form-api-role \
-  --timeout 30 --memory-size 512 \
-  --region $REGION
-```
-
-Sizing notes: the worker does vision + LLM calls + one repair loop — `2048` MB
-and `600` s timeout is a safe start (the hard ceiling is 900 s). The API only
-does light DB calls — `512` MB / `30` s is plenty.
-
-## 3. IAM
+## 2. IAM roles
 
 - **`sketch-to-form-worker-role`** — `AWSLambdaBasicExecutionRole` (CloudWatch
   Logs). No other AWS permissions: it talks only to Supabase and the LLM over
   HTTPS.
-- **`sketch-to-form-api-role`** — `AWSLambdaBasicExecutionRole` **plus**
-  `lambda:InvokeFunction` on the worker:
+- **`sketch-to-form-api-role`** — `AWSLambdaBasicExecutionRole` **plus** an
+  inline `invoke-worker` policy granting `lambda:InvokeFunction` on
+  `sketch-to-form-worker`.
 
-  ```json
-  {
-    "Effect": "Allow",
-    "Action": "lambda:InvokeFunction",
-    "Resource": "arn:aws:lambda:us-east-1:<ACCOUNT>:function:sketch-to-form-worker"
-  }
-  ```
+## 3. Build the zip artifact
 
-## 4. Environment variables
+```bash
+cd backend
+uv export --frozen --no-emit-project --no-hashes -o .lambda-build/requirements.txt
+uv pip install --target .lambda-build \
+  --python-platform x86_64-manylinux_2_34 --python-version 3.12 \
+  --only-binary :all: --no-cache -r .lambda-build/requirements.txt
+cp -r app .lambda-build/app
+( cd .lambda-build && zip -qr ../.lambda-build.zip . )
+```
 
-Set on **both** functions (`aws lambda update-function-configuration
---environment Variables={...}`). The `.env` file is not in the image — values
-come from Lambda env vars (read directly by pydantic-settings).
+`--python-platform x86_64-manylinux_2_34` cross-installs wheels for Lambda's
+runtime (Amazon Linux 2023, glibc 2.34, x86_64) so native extensions
+(`pydantic-core`, `pillow`, `tiktoken`, `cryptography`) have the correct ABI —
+the build host's macOS/arm64 wheels would not load.
+
+## 4. Create the two functions
+
+Both use runtime `python3.12` and the **same artifact**; they differ only in
+the handler.
+
+```bash
+# Worker first — the API references it by name.
+aws lambda create-function --function-name sketch-to-form-worker \
+  --runtime python3.12 \
+  --handler app.lambda_handlers.worker_handler \
+  --code S3Bucket=sketch-to-form-lambda-<ACCOUNT>,S3Key=lambda-build.zip \
+  --role arn:aws:iam::<ACCOUNT>:role/sketch-to-form-worker-role \
+  --timeout 600 --memory-size 2048 --region ap-south-1
+
+aws lambda create-function --function-name sketch-to-form-api \
+  --runtime python3.12 \
+  --handler app.lambda_handlers.api_handler \
+  --code S3Bucket=sketch-to-form-lambda-<ACCOUNT>,S3Key=lambda-build.zip \
+  --role arn:aws:iam::<ACCOUNT>:role/sketch-to-form-api-role \
+  --timeout 30 --memory-size 512 --region ap-south-1
+```
+
+Sizing: the worker does vision + LLM calls + one repair loop — `2048` MB /
+`600` s is a safe start (hard ceiling 900 s). The API only does light DB calls
+— `512` MB / `30` s is plenty.
+
+## 5. Environment variables
+
+Set on **both** functions. There is no `.env` in the artifact — values come
+from Lambda env vars (read directly by pydantic-settings via `app/config.py`).
 
 | Variable | Value |
 |---|---|
 | `JOB_DISPATCH_MODE` | `lambda` |
 | `WORKER_FUNCTION_NAME` | `sketch-to-form-worker` |
-| `SUPABASE_URL` | your project URL |
+| `CORS_ORIGINS` | `["https://fde-quest-2.vercel.app","http://localhost:3000"]` |
+| `SUPABASE_URL` | project URL |
 | `SUPABASE_ANON_KEY` | anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | service role key |
+| `SUPABASE_JWT_SECRET` | optional (legacy HS256 only) |
 | `SKETCHES_BUCKET` | `sketches` |
-| `LLM_PROVIDER` + provider creds | `OPENAI_API_KEY` etc. |
-| `CORS_ORIGINS` | `["https://<your-app>.vercel.app"]` |
+| `LLM_PROVIDER` + provider creds | `openai` + `OPENAI_API_KEY` |
 | `LOG_LEVEL` | `INFO` |
 
-`WORKER_FUNCTION_NAME` is only consumed by the API Lambda, but setting it on
-both is harmless. For production, store the secrets in **AWS Secrets Manager**
-and reference them rather than pasting plaintext.
+## 6. Public API Gateway HTTP API
 
-## 5. Public URL for the API
+The API Lambda is fronted by an **API Gateway HTTP API** named
+`sketch-to-form-http`. It is created with `apigatewayv2 create-api --target
+<lambda-arn>`, which wires up a catch-all `$default` route, an `AWS_PROXY`
+integration, and an auto-deployed `$default` stage in one call; a
+`lambda:InvokeFunction` permission for `apigateway.amazonaws.com` is added
+separately. Mangum auto-detects the API Gateway v2 payload format.
 
-Create a **Lambda Function URL** on `sketch-to-form-api` (simplest — no API
-Gateway needed):
+> **Why not a Lambda Function URL?** A Function URL with `AuthType=NONE`
+> returns `403 AccessDeniedException` on this account even with a correct
+> public resource policy — public Function URLs are blocked here. API Gateway
+> is unaffected.
 
-```bash
-aws lambda create-function-url-config \
-  --function-name sketch-to-form-api \
-  --auth-type NONE --region $REGION
+AWS-level auth on the HTTP API is open; **JWT auth is still enforced inside the
+app** (`app/security.py`). Point the frontend's `NEXT_PUBLIC_API_URL` at the
+`ApiEndpoint` the script prints.
 
-aws lambda add-permission \
-  --function-name sketch-to-form-api \
-  --statement-id public-url --action lambda:InvokeFunctionUrl \
-  --principal "*" --function-url-auth-type NONE --region $REGION
-```
-
-The returned URL serves all routes under `/api/v1/...`. Auth is still enforced
-inside the app by the JWT bearer check — `auth-type NONE` only means AWS itself
-does not gate the URL.
-
-## 6. Wire up the frontend
-
-Point the frontend at the Function URL (whatever env var it uses for the API
-base, e.g. `NEXT_PUBLIC_API_BASE_URL`) and redeploy on Vercel. Make sure that
-Vercel origin is in `CORS_ORIGINS`.
+---
 
 ## Redeploying after code changes
 
-```bash
-docker build --platform linux/amd64 -t $REPO . && \
-docker tag $REPO:latest $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest && \
-docker push $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest && \
-aws lambda update-function-code --function-name sketch-to-form-api \
-  --image-uri $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest --region $REGION && \
-aws lambda update-function-code --function-name sketch-to-form-worker \
-  --image-uri $ACCOUNT.dkr.ecr.$REGION.amazonaws.com/$REPO:latest --region $REGION
-```
+Just run `./deploy_lambda.sh` again — it rebuilds the zip, re-uploads to S3,
+and calls `update-function-code` + `update-function-configuration` on both
+functions. The S3 bucket, IAM roles, and HTTP API are reused (the API
+endpoint URL is stable across redeploys).
 
-## Things to know
+## Troubleshooting
 
-- **Cold starts** — heavy imports make the first request after idle slow
-  (several seconds). The generate flow is async so it tolerates this; for the
-  synchronous `/me` and `/forms/validate` routes, add provisioned concurrency
-  if the latency matters.
-- **Retries** — async invoke retries twice on an *unhandled* crash (OOM /
-  timeout). `run_generation_job` catches pipeline errors itself and records
-  `failed`, so those do **not** retry. A genuine crash will redeliver; the
-  idempotency guard in `run_generation_job` skips a job already `completed`.
-  Attach a dead-letter queue to the worker to capture exhausted retries.
-- **15-minute ceiling** — the worker must finish within Lambda's max timeout.
-- **JWT lifetime** — the caller's JWT is forwarded to the worker and used for
-  RLS-scoped DB writes. Supabase access tokens last ~1 h, well beyond a normal
-  pipeline run, but a job delayed by long retry backoff could outlive it.
-
-## Local development
-
-Unchanged. `JOB_DISPATCH_MODE` defaults to `background`, so
-`uv run uvicorn app.main:app --reload` runs the pipeline in-process via
-FastAPI BackgroundTasks — no AWS, no Docker needed.
+- **`Runtime.ImportModuleError` / wrong-ABI `.so`** — the build was not
+  cross-installed for `x86_64-manylinux_2_34`. Re-run the script (it always
+  rebuilds with the right `--python-platform`).
+- **CORS errors in the browser** — confirm the caller's origin is in
+  `CORS_ORIGINS` (edit the value in `deploy_lambda.sh` and redeploy).
+- **Logs** — `aws logs tail /aws/lambda/sketch-to-form-api --follow --region ap-south-1`
+  (or `sketch-to-form-worker`).

@@ -70,7 +70,7 @@ export function FormResponsePicker({
                 >
                   <div
                     aria-hidden
-                    className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-brand/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
+                    className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-brand/60 to-transparent"
                   />
                   <div className="flex flex-1 flex-col gap-4 p-5">
                     <div className="flex items-start justify-between gap-3">

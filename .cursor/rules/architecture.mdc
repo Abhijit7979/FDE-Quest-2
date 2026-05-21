@@ -9,20 +9,25 @@ alwaysApply: false
 ## Runtime topology
 
 ```
-Browser ──► Next.js (frontend/)     auth, editor, RLS-covered Supabase I/O
+Browser ──► Next.js on Vercel (frontend/)     auth, editor, RLS-covered Supabase I/O
               │
-              └── Bearer JWT ──► FastAPI (backend/)  sketch pipeline only
+              └── Bearer JWT ──► FastAPI (backend/)
+                    local: uvicorn :8000 (JOB_DISPATCH_MODE=background)
+                    prod:  API Gateway → API Lambda → async worker Lambda
                                     │
-                                    └── service role ──► Storage (sketches read)
+                                    └── service role ──► Storage (sketches read only)
                                     └── user JWT client ──► Postgres (RLS)
 
 Respondent ──► /f/[slug] ──► public_forms view (anon SELECT)
-              └── INSERT form_responses (published forms only)
+              ├── INSERT form_responses (published forms only)
+              └── file_upload ──► response-uploads bucket (anon INSERT, owner signed URLs)
 ```
 
-- **Frontend** owns auth (`@supabase/ssr` httpOnly cookies), form CRUD, and anything PostgREST RLS already allows.
-- **Backend** owns `POST /forms/generate`, job polling, `POST /forms/validate`. Images are never uploaded to FastAPI — only `storage_path` in JSON; backend downloads via service role.
-- **Supabase** owns schema, RLS, triggers, and the private `sketches` bucket.
+- **Frontend** owns auth (`@supabase/ssr` httpOnly cookies), form CRUD, responses UI, and anything PostgREST RLS already allows. Calls FastAPI via `NEXT_PUBLIC_API_URL` (`src/lib/api/forms.ts`).
+- **Backend** owns `POST /forms/generate`, job polling, `POST /forms/validate`. Images are never uploaded to FastAPI — only `storage_path` in JSON; backend downloads via service role. Production jobs run on the **worker Lambda** (`JOB_DISPATCH_MODE=lambda`).
+- **Supabase** owns schema, RLS, triggers, and private buckets `sketches` + `response-uploads`.
+
+See `.cursor/rules/deployment.mdc` for Vercel + Lambda details.
 
 ## LangGraph pipeline
 
@@ -46,7 +51,10 @@ preprocess → vision_extract → structure → validate
 | Area | Path | Notes |
 |------|------|-------|
 | Auth pages | `app/(auth)/` | login, signup, forgot-password |
-| App shell | `app/(app)/` | sidebar layout, home, forms |
+| App shell | `app/(app)/` | sidebar: home, drafts, published, create, responses |
+| Drafts | `app/(app)/forms/drafts/` | owner draft forms |
+| Published | `app/(app)/forms/published/` | published forms + share links |
+| Responses | `app/(app)/forms/responses/` | response picker + sheet (CSV export) |
 | Public forms | `app/f/[slug]/` | no internal `id` in UI |
 | Auth callback | `app/auth/callback/route.ts` | code exchange |
 | Session gate | `src/proxy.ts` exports `proxy` | **Not** `middleware.ts` |
@@ -63,7 +71,8 @@ Read `frontend/node_modules/next/dist/docs/` for Next.js 16 APIs before changing
 | `config.py` | `get_settings()` only — `@lru_cache`, never raw `Settings()` |
 | `security.py` | JWKS-first JWT (`CurrentUser` dependency) |
 | `supabase_client.py` | `get_user_client(jwt)` vs `get_service_client()` |
-| `jobs.py` | BackgroundTasks job lifecycle |
+| `jobs.py` | `run_generation_job`; `dispatch_to_lambda` when `JOB_DISPATCH_MODE=lambda` |
+| `lambda_handlers.py` | `api_handler` (Mangum), `worker_handler` — AWS only |
 | `routers/` | Thin routers; register in `main.create_app()` |
 | `pipeline/` | LangGraph state + graph + nodes |
 | `schemas/` | `definition.py` (contract), `api.py` (HTTP shapes) |
@@ -72,11 +81,14 @@ Read `frontend/node_modules/next/dist/docs/` for Next.js 16 APIs before changing
 
 Tables: `profiles`, `forms`, `form_responses`, `generation_jobs`. View: `public_forms` (published rows only).
 
-Storage path invariant:
+Storage path invariants:
 
 ```
-sketches/{auth.uid()}/{form_id_or_filename}.{ext}
+sketches/{auth.uid()}/{form_id_or_filename}.{ext}           # owner sketch uploads
+response-uploads/{form_id}/{uuid}.{ext}                   # respondent file_upload answers
 ```
+
+`file_upload` answers in `form_responses.answers`: `{ path, name, size, mime }`. Helpers: `frontend/src/lib/storage/response-uploads.ts`.
 
 ## API surface (backend)
 

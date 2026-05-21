@@ -1,0 +1,81 @@
+---
+description: Production hosting — Vercel frontend, AWS Lambda backend (zip + API Gateway)
+globs:
+alwaysApply: false
+---
+
+# Deployment & Hosting
+
+## Production topology
+
+```
+Respondent / owner browser
+        │
+        ├─► Vercel (Next.js)     https://fde-quest-2.vercel.app
+        │       Supabase Auth + RLS I/O (Postgres, Storage)
+        │
+        └─► API Gateway HTTP API (ap-south-1)
+                └─► sketch-to-form-api (Lambda, Mangum + FastAPI)
+                        │ async invoke (Event)
+                        └─► sketch-to-form-worker (Lambda, LangGraph job)
+```
+
+- **Frontend:** Vercel project `fde-quest-2` (`frontend/vercel.json`). Set `NEXT_PUBLIC_API_URL` to the API Gateway `ApiEndpoint` printed by `backend/deploy_lambda.sh`.
+- **Backend:** AWS Lambda in **`ap-south-1`** — **zip artifact** (no Docker). One zip, two handlers in `app/lambda_handlers.py`.
+- **Database / auth / storage:** Supabase (linked project in `supabase/.temp/linked-project.json`).
+
+## Local vs production backend
+
+| Setting | Local (`uvicorn`) | Production (Lambda) |
+|---------|-------------------|---------------------|
+| `JOB_DISPATCH_MODE` | `background` | `lambda` |
+| `WORKER_FUNCTION_NAME` | empty | `sketch-to-form-worker` |
+| Job execution | FastAPI `BackgroundTasks` | API Lambda async-invokes worker |
+| `CORS_ORIGINS` | `http://localhost:3000` | includes `https://fde-quest-2.vercel.app` |
+
+Local dev: `uv run uvicorn app.main:app --reload` on `:8000` with `frontend` pointing at `NEXT_PUBLIC_API_URL=http://localhost:8000` (default in `src/lib/api/forms.ts`).
+
+## Lambda deploy (idempotent)
+
+From `backend/`:
+
+```bash
+./deploy_lambda.sh
+```
+
+Script creates/reuses: S3 bucket `sketch-to-form-lambda-<ACCOUNT_ID>`, IAM roles, both functions, API Gateway HTTP API `sketch-to-form-http`. Re-run after code changes — endpoint URL is stable.
+
+**Build notes:** cross-install deps with `--python-platform x86_64-manylinux_2_34` (Amazon Linux 2023 / glibc 2.34). Artifact ~65 MB zipped via S3 (over direct-upload cap). Ignore `.lambda-build/` and `.lambda-build.zip` (see `backend/.gitignore`).
+
+**Do not** use Lambda Function URLs on this account (`AuthType=NONE` returns 403) — API Gateway HTTP API is required.
+
+Full reference: `backend/DEPLOY_LAMBDA.md`.
+
+## Frontend env (Vercel)
+
+Set in Vercel project settings (mirror `frontend/.env.local`):
+
+- `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server only)
+- `NEXT_PUBLIC_API_URL` — API Gateway base URL (no trailing slash)
+
+## Backend env (Lambda)
+
+Injected by `deploy_lambda.sh` from `backend/.env` (secrets) plus script overrides:
+
+- `JOB_DISPATCH_MODE=lambda`, `WORKER_FUNCTION_NAME=sketch-to-form-worker`
+- `CORS_ORIGINS` includes production Vercel origin
+- Supabase keys, `SKETCHES_BUCKET`, LLM provider vars — see `backend/.env.example`
+
+JWT auth is enforced **inside FastAPI** (`app/security.py`); API Gateway has no AWS-level JWT — do not expose unauthenticated admin routes.
+
+## CORS & troubleshooting
+
+- Browser CORS errors: caller origin must be in `CORS_ORIGINS` — edit `CORS_ORIGINS` in `deploy_lambda.sh` and redeploy.
+- Wrong native `.so` on Lambda: rebuild with `deploy_lambda.sh` (correct `--python-platform`).
+- Logs: `aws logs tail /aws/lambda/sketch-to-form-api --follow --region ap-south-1`
+
+## Change discipline
+
+- Hosting-only changes: prefer `deploy_lambda.sh` / Vercel env — avoid hardcoding API URLs in source.
+- Pipeline or API contract changes: update `CLAUDE.md` / PRD if behavior changes; keep `NEXT_PUBLIC_API_URL` as the single frontend switch.

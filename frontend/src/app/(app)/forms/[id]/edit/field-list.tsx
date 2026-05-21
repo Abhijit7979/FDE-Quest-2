@@ -217,7 +217,7 @@ function SortableRow({
         {FIELD_TYPE_LABEL[field.type]}
       </Badge>
 
-      <div className="flex items-center gap-0.5 opacity-0 group-hover/field:opacity-100 group-data-[selected=true]/field:opacity-100 transition-opacity">
+      <div className="flex items-center gap-0.5">
         <Button
           variant="ghost"
           size="icon-sm"

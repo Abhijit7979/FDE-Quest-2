@@ -37,11 +37,21 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 - Respondents: SELECT `public_forms` only — do not grant anon on `forms`.
 - New respondent-visible columns → `ALTER VIEW public_forms`, not looser RLS on `forms`.
 
-## Storage (`sketches` bucket)
+## Storage
+
+### `sketches` (owner sketch uploads)
 
 - Private; 10 MB; MIME jpeg/png/webp.
 - Path: `sketches/{auth.uid()}/{form_id_or_filename}.{ext}`
 - RLS: first segment = `auth.uid()::text`
+- Backend reads via service role (no user read policy for API).
+
+### `response-uploads` (respondent `file_upload` fields)
+
+- Private; 10 MB; MIME jpeg/png/webp + `application/pdf`.
+- Path: `response-uploads/{form_id}/{uuid}.{ext}`
+- anon INSERT gated on published form (`public_forms`); owner SELECT/DELETE.
+- Answer JSON: `{ path, name, size, mime }` — not raw file bytes in Postgres.
 
 ## Security definer
 

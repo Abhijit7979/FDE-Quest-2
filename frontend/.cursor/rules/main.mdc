@@ -12,12 +12,20 @@ alwaysApply: false
 
 Next.js 16.2 · React 19 · TypeScript · Tailwind v4 · shadcn (`base-nova`) · `@base-ui/react` · `@supabase/ssr` · Zod
 
+**Hosting:** Vercel (`https://fde-quest-2.vercel.app`). FastAPI base URL from `NEXT_PUBLIC_API_URL` (defaults to `http://localhost:8000` in `src/lib/api/forms.ts`).
+
 ## Routing
 
 | Group | Path | Purpose |
 |-------|------|---------|
 | `(auth)` | `src/app/(auth)/` | login, signup, forgot-password |
-| `(app)` | `src/app/(app)/` | authed shell (sidebar, home, forms) |
+| `(app)` | `src/app/(app)/` | authed shell (sidebar) |
+| Home | `src/app/(app)/home/` | dashboard |
+| Drafts | `src/app/(app)/forms/drafts/` | draft forms |
+| Published | `src/app/(app)/forms/published/` | published forms, share links |
+| Create | `src/app/(app)/forms/create/` | new form / sketch upload |
+| Responses | `src/app/(app)/forms/responses/` | browse/export responses |
+| Editor | `src/app/(app)/forms/[id]/edit/` | definition editor |
 | Public | `src/app/f/[slug]/` | respondent form — slug only, no internal id |
 | Callback | `src/app/auth/callback/route.ts` | Supabase code exchange |
 
@@ -49,17 +57,20 @@ Never use service role in client bundles. Server-only secrets stay in server com
 - Validate answers with `src/lib/public-form/validate-answers.ts`; keys = field `id` (`f_*`).
 - Publish: set `public_slug` with `nanoid(12)` when status → `published`.
 - Preserve `needs_review` on fields when saving editor state.
+- `file_upload` fields: respondent uploads via `src/lib/storage/response-uploads.ts`; answer shape `{ path, name, size, mime }`; owner views via signed URLs in responses UI.
 
 ## Backend API calls
 
 Sketch generation hits FastAPI with `Authorization: Bearer <session JWT>`:
 
 ```ts
-POST {API}/api/v1/forms/generate
-{ storage_path, form_id? }
+// src/lib/api/forms.ts — base from NEXT_PUBLIC_API_URL
+POST {API}/api/v1/forms/generate   { storage_path, form_id? }
+GET  {API}/api/v1/forms/generate/{job_id}
+POST {API}/api/v1/forms/validate
 ```
 
-Storage uploads: `sketches/{userId}/{formId or filename}.{ext}`.
+Storage uploads (owner sketches): `sketches/{userId}/{formId or filename}.{ext}`.
 
 ## Commands
 
@@ -71,4 +82,4 @@ No `test` script — ask before adding.
 
 ## PRD
 
-Routes and UX flows: `PRD_claude.md` section 9.
+Routes and UX flows: `PRD_claude.md` section 9. Deployment: `.cursor/rules/deployment.mdc`.

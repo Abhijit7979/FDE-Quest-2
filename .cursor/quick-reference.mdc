@@ -20,9 +20,18 @@ npm run lint
 ```bash
 cd backend
 uv sync
-uv run uvicorn app.main:app --reload   # http://localhost:8000
+uv run uvicorn app.main:app --reload   # http://localhost:8000 (JOB_DISPATCH_MODE=background)
 uv run python -c "from app.main import app"
+./deploy_lambda.sh                     # production: zip → S3 → API + worker Lambdas (ap-south-1)
 ```
+
+## Production URLs
+
+| Surface | URL / target |
+|---------|----------------|
+| Frontend (Vercel) | `https://fde-quest-2.vercel.app` |
+| Backend API | API Gateway `ApiEndpoint` from `deploy_lambda.sh` → set as `NEXT_PUBLIC_API_URL` on Vercel |
+| Supabase | Project in `supabase/.temp/linked-project.json` |
 
 ## Supabase
 
@@ -45,6 +54,11 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 | Auth actions | `frontend/src/app/(auth)/actions.ts` |
 | Supabase clients | `frontend/src/lib/supabase/` |
 | Public form | `frontend/src/app/f/[slug]/` |
+| Published list | `frontend/src/app/(app)/forms/published/` |
+| Responses workspace | `frontend/src/app/(app)/forms/responses/` |
+| Backend API client | `frontend/src/lib/api/forms.ts` |
+| Lambda deploy doc | `backend/DEPLOY_LAMBDA.md` |
+| Lambda handlers | `backend/app/lambda_handlers.py` |
 | LangGraph graph | `backend/app/pipeline/graph.py` |
 | Definition schema | `backend/app/schemas/definition.py` |
 | Migrations | `supabase/migrations/` |
@@ -52,10 +66,11 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 
 ## Environment variables
 
-**Frontend (`frontend/.env.local`):**
+**Frontend (`frontend/.env.local` / Vercel):**
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_API_URL` — local `http://localhost:8000`; production = API Gateway URL
 - `SUPABASE_URL` (server)
 - `SUPABASE_SERVICE_ROLE_KEY` (server only — never expose to client bundles)
 
@@ -64,7 +79,9 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
 - `SKETCHES_BUCKET=sketches`
 - `LLM_PROVIDER`, `OPENAI_API_KEY` (and/or GitHub Models vars)
-- `CORS_ORIGINS` (JSON array)
+- `CORS_ORIGINS` (JSON array; prod includes `https://fde-quest-2.vercel.app`)
+- `JOB_DISPATCH_MODE` — `background` (local) or `lambda` (AWS)
+- `WORKER_FUNCTION_NAME` — `sketch-to-form-worker` when `lambda`
 - `LOG_LEVEL`
 - `SUPABASE_JWT_SECRET` (optional legacy HS256)
 

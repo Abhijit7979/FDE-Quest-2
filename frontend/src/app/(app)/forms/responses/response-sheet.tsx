@@ -305,7 +305,7 @@ export function ResponseSheet({
                           size="icon-sm"
                           disabled={pending}
                           aria-label="Delete row"
-                          className="opacity-0 transition-opacity group-hover:opacity-100 text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive"
                           onClick={() => onDeleteRow(row.id)}
                         >
                           <Trash2 className="size-3.5" />

@@ -16,7 +16,8 @@ Python 3.12 · `uv` · FastAPI · Pydantic · LangGraph · Supabase Python clien
 | `config.py` | `get_settings()` — `@lru_cache` only |
 | `security.py` | JWKS JWT → `CurrentUser` |
 | `supabase_client.py` | `get_user_client(jwt)` / `get_service_client()` |
-| `jobs.py` | `run_generation_job` BackgroundTasks |
+| `jobs.py` | `run_generation_job`, `dispatch_to_lambda` |
+| `lambda_handlers.py` | `api_handler` (Mangum), `worker_handler` — production only |
 | `routers/` | HTTP routers |
 | `pipeline/` | LangGraph state, graph, nodes |
 | `schemas/` | `definition.py`, `api.py` |
@@ -29,6 +30,15 @@ get_service_client()   # service role — ONLY sketches bucket reads
 ```
 
 Never use service client for `forms` / `generation_jobs` writes. Never insert `profiles`.
+
+## Job dispatch
+
+| `JOB_DISPATCH_MODE` | Behavior |
+|---------------------|----------|
+| `background` | `BackgroundTasks` in API process (local `uvicorn`) |
+| `lambda` | `dispatch_to_lambda` async-invokes `WORKER_FUNCTION_NAME` |
+
+On AWS Lambda the API process must use `lambda` — the execution environment freezes after the HTTP response. Worker runs `run_generation_job` with the same kwargs dict.
 
 ## Routes
 
@@ -55,15 +65,25 @@ Authenticated routes: `CurrentUser` dependency. When forwarding to DB: `_require
 
 Use `Depends(get_settings)` or `get_settings()` — never instantiate `Settings()` elsewhere.
 
-Env template: `backend/.env.example` (LLM provider, CORS, Supabase keys).
+Env template: `backend/.env.example` (LLM provider, CORS, `JOB_DISPATCH_MODE`, `WORKER_FUNCTION_NAME`).
 
 ## Commands
 
 ```bash
 cd backend && uv sync
-uv run uvicorn app.main:app --reload
+uv run uvicorn app.main:app --reload          # local
 uv run python -c "from app.main import app"
+./deploy_lambda.sh                            # production (zip, ap-south-1)
 ```
+
+## Deployment
+
+- **Artifact:** zip via `deploy_lambda.sh` (not Docker). Cross-build for `x86_64-manylinux_2_34`.
+- **Functions:** `sketch-to-form-api` + `sketch-to-form-worker`, same zip, different handlers.
+- **Ingress:** API Gateway HTTP API `sketch-to-form-http` (not Lambda Function URL).
+- **CORS:** must include Vercel origin — see `deploy_lambda.sh` / `DEPLOY_LAMBDA.md`.
+
+Full guide: `backend/DEPLOY_LAMBDA.md` and `.cursor/rules/deployment.mdc`.
 
 ## PRD
 

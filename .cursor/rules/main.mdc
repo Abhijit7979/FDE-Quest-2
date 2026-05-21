@@ -22,11 +22,17 @@ alwaysApply: true
 | `backend/` | FastAPI + LangGraph, `/api/v1/*`, JWT verification |
 | `supabase/` | Migrations, RLS, `sketches` Storage bucket |
 
+**Hosting (production):**
+
+- **Frontend:** Vercel — `https://fde-quest-2.vercel.app` (`frontend/`)
+- **Backend:** AWS Lambda (`ap-south-1`) — API + worker functions behind API Gateway HTTP API; deploy via `backend/deploy_lambda.sh`
+- **Data / auth:** Supabase (Postgres, RLS, Storage)
+
 **Tech stack:**
 
 - **Frontend:** Next.js 16.2, React 19, TypeScript, Tailwind v4, shadcn + `@base-ui/react`, Supabase SSR
-- **Backend:** Python 3.12, FastAPI, LangGraph, Pydantic, `uv`
-- **Data:** Supabase Postgres + RLS + Storage
+- **Backend:** Python 3.12, FastAPI, LangGraph, Pydantic, `uv` (local `uvicorn` or Lambda via Mangum)
+- **Data:** Supabase Postgres + RLS + Storage (`sketches`, `response-uploads`)
 
 **Nested rules (auto-scoped by path):**
 
@@ -41,6 +47,7 @@ For complex tasks, adopt a mindset from `.cursor/prompts/` (frontend, backend, s
 ## Detailed guidelines
 
 - **Architecture:** `.cursor/rules/architecture.mdc`
+- **Deployment:** `.cursor/rules/deployment.mdc`
 - **Code style:** `.cursor/rules/code-style.mdc`
 - **Git:** `.cursor/rules/git-workflow.mdc`
 - **Testing:** `.cursor/rules/testing.mdc`

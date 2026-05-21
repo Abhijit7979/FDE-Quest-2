@@ -59,8 +59,17 @@ Never commit real keys. Never log JWTs, service role key, or LLM API keys.
 ## API
 
 - CORS from `CORS_ORIGINS` in backend settings (JSON list).
-- CORS misconfiguration is a deployment risk — keep origins explicit.
+- Production must include `https://fde-quest-2.vercel.app`; local dev uses `http://localhost:3000` (see `backend/deploy_lambda.sh`).
+- API Gateway fronts the API Lambda with no AWS-level JWT — app-level JWT (`security.py`) is still required on protected routes.
+- CORS misconfiguration is a deployment risk — keep origins explicit; edit `deploy_lambda.sh` and redeploy rather than widening in code.
 - Error responses: safe messages to clients; stack traces in server logs only.
+
+## Respondent file uploads (`response-uploads`)
+
+- anon INSERT only into paths for **published** forms (RLS gates on `public_forms`).
+- Owner SELECT/DELETE via `forms.owner_id`; viewers use short-lived signed URLs server-side.
+- Allowed MIME: jpeg/png/webp + pdf; 10 MB cap.
+- Never expose service role to the public form page for bucket reads.
 
 ## Dependencies
 
