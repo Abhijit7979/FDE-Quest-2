@@ -5,6 +5,12 @@ from functools import lru_cache
 from typing import Any
 
 from app.config import get_settings
+from app.observability import (
+    flush as flush_langfuse,
+    get_langchain_callback_handler,
+    get_langfuse_client,
+    trace_root,
+)
 from app.pipeline.graph import build_graph
 from app.pipeline.state import PipelineState
 from app.supabase_client import get_user_client
@@ -86,9 +92,60 @@ def run_generation_job(
         "repair_count": 0,
     }
 
+    settings = get_settings()
+    lf_client = get_langfuse_client()
+    lc_handler = get_langchain_callback_handler()
+
+    invoke_config: dict[str, Any] | None = None
+    if lc_handler is not None:
+        invoke_config = {"callbacks": [lc_handler]}
+
+    # Trace input intentionally omits user_jwt (sensitive).
+    trace_input = {
+        "job_id": job_id,
+        "form_id": form_id,
+        "owner_id": owner_id,
+        "storage_paths": storage_paths,
+        "description": description,
+    }
+
+    vision_model = (
+        settings.openai_vision_model
+        if settings.llm_provider == "openai"
+        else settings.github_model
+    )
+
     try:
         graph = build_graph()
-        final = graph.invoke(state)
+        # session_id=form_id groups every generation+repair attempt for the
+        # same form under one session in the Langfuse UI.
+        with trace_root(
+            "sketch-to-form-job",
+            user_id=owner_id,
+            session_id=form_id,
+            tags=["sketch-to-form", settings.llm_provider],
+            metadata={
+                "job_id": job_id,
+                "dispatch_mode": settings.job_dispatch_mode,
+                "llm_provider": settings.llm_provider,
+                "vision_model": vision_model,
+                "sketch_count": len(storage_paths),
+            },
+            input=trace_input,
+        ) as span:
+            final = graph.invoke(state, config=invoke_config) if invoke_config else graph.invoke(state)
+
+            if span is not None:
+                fields = final.get("definition", {}).get("fields", [])
+                span.update(
+                    output={
+                        "field_count": len(fields),
+                        "warnings": final.get("warnings", []),
+                        "repair_count": final.get("repair_count", 0),
+                        "validation_error": final.get("validation_error"),
+                    }
+                )
+
         sb.table("generation_jobs").update(
             {"status": "completed", "completed_at": _now(), "error": None}
         ).eq("id", job_id).execute()
@@ -107,3 +164,8 @@ def run_generation_job(
                 "error": f"{type(exc).__name__}: {exc}"[:1000],
             }
         ).eq("id", job_id).execute()
+    finally:
+        # Background tasks and Lambda freeze quickly after returning — flush
+        # so the trace isn't dropped.
+        if lf_client is not None:
+            flush_langfuse()

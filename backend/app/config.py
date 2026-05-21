@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +48,14 @@ class Settings(BaseSettings):
     job_dispatch_mode: str = Field(default="background", alias="JOB_DISPATCH_MODE")
     worker_function_name: str | None = Field(
         default=None, alias="WORKER_FUNCTION_NAME"
+    )
+
+    # Langfuse tracing. If public+secret are unset, tracing is a no-op.
+    langfuse_public_key: str | None = Field(default=None, alias="LANGFUSE_PUBLIC_KEY")
+    langfuse_secret_key: str | None = Field(default=None, alias="LANGFUSE_SECRET_KEY")
+    langfuse_host: str = Field(
+        default="https://us.cloud.langfuse.com",
+        validation_alias=AliasChoices("LANGFUSE_HOST", "LANGFUSE_BASE_URL"),
     )
 
 
