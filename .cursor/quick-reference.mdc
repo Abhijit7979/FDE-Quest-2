@@ -54,7 +54,10 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 | Auth actions | `frontend/src/app/(auth)/actions.ts` |
 | Supabase clients | `frontend/src/lib/supabase/` |
 | Public form | `frontend/src/app/f/[slug]/` |
+| Draft trash | `frontend/src/app/(app)/forms/trash/` |
 | Published list | `frontend/src/app/(app)/forms/published/` |
+| Product tour actions | `frontend/src/app/(app)/tour-actions.ts` |
+| Langfuse / traces | `backend/app/observability.py` |
 | Responses workspace | `frontend/src/app/(app)/forms/responses/` |
 | Backend API client | `frontend/src/lib/api/forms.ts` |
 | Lambda deploy doc | `backend/DEPLOY_LAMBDA.md` |
@@ -84,6 +87,7 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 - `WORKER_FUNCTION_NAME` — `sketch-to-form-worker` when `lambda`
 - `LOG_LEVEL`
 - `SUPABASE_JWT_SECRET` (optional legacy HS256)
+- `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_HOST` (optional tracing)
 
 ## API quick map
 

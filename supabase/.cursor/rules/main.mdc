@@ -25,8 +25,8 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 
 | Object | Notes |
 |--------|-------|
-| `profiles` | Auto-created by `handle_new_user` trigger on `auth.users` — never client INSERT |
-| `forms` | Owner RLS; `updated_at` via `forms_set_updated_at` trigger |
+| `profiles` | Auto-provisioned via `handle_new_user`; `tour_completed_at` NULL → product tour on next session |
+| `forms` | Owner RLS; `updated_at` via trigger; `deleted_at` for draft trash (1-day purge) |
 | `form_responses` | anon INSERT only when parent published |
 | `generation_jobs` | Owner-scoped job status |
 | `public_forms` | View: `id, public_slug, title, description, definition` where `status = 'published'` |
@@ -34,6 +34,7 @@ supabase gen types typescript --linked > frontend/src/types/supabase.ts
 ## Invariants
 
 - `forms_published_requires_slug`: `public_slug IS NOT NULL` when `status = 'published'`.
+- Only **draft** forms may set `deleted_at` (trash); restore blocked after 1 day (`forms_guard_soft_delete` trigger).
 - Respondents: SELECT `public_forms` only — do not grant anon on `forms`.
 - New respondent-visible columns → `ALTER VIEW public_forms`, not looser RLS on `forms`.
 

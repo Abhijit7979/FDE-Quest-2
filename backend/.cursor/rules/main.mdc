@@ -17,6 +17,7 @@ Python 3.12 · `uv` · FastAPI · Pydantic · LangGraph · Supabase Python clien
 | `security.py` | JWKS JWT → `CurrentUser` |
 | `supabase_client.py` | `get_user_client(jwt)` / `get_service_client()` |
 | `jobs.py` | `run_generation_job`, `dispatch_to_lambda` |
+| `observability.py` | Langfuse traces (optional; no-op if keys unset) |
 | `lambda_handlers.py` | `api_handler` (Mangum), `worker_handler` — production only |
 | `routers/` | HTTP routers |
 | `pipeline/` | LangGraph state, graph, nodes |
@@ -65,7 +66,13 @@ Authenticated routes: `CurrentUser` dependency. When forwarding to DB: `_require
 
 Use `Depends(get_settings)` or `get_settings()` — never instantiate `Settings()` elsewhere.
 
-Env template: `backend/.env.example` (LLM provider, CORS, `JOB_DISPATCH_MODE`, `WORKER_FUNCTION_NAME`).
+Env template: `backend/.env.example` (LLM provider, CORS, `JOB_DISPATCH_MODE`, `WORKER_FUNCTION_NAME`, optional `LANGFUSE_*`).
+
+## Observability (Langfuse)
+
+- Wired in `jobs.py` / `observability.py` — one trace per generation job, nodes as spans.
+- Disabled when `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` are empty (safe for local dev).
+- Never log Langfuse secret keys.
 
 ## Commands
 

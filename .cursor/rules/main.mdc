@@ -65,3 +65,7 @@ For complex tasks, adopt a mindset from `.cursor/prompts/` (frontend, backend, s
 7. New schema → new migration file (never edit pushed migrations) → regen `frontend/src/types/supabase.ts`.
 
 **Also read:** root `CLAUDE.md`, `frontend/AGENTS.md` (Next.js 16 breaking changes).
+
+---
+
+**Rules refreshed:** 2026-05-22 · **Approach:** Hybrid (`PRD_claude.md` / `CLAUDE.md` invariants + best practices)

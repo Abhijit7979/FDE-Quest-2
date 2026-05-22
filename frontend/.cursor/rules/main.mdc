@@ -21,7 +21,8 @@ Next.js 16.2 · React 19 · TypeScript · Tailwind v4 · shadcn (`base-nova`) ·
 | `(auth)` | `src/app/(auth)/` | login, signup, forgot-password |
 | `(app)` | `src/app/(app)/` | authed shell (sidebar) |
 | Home | `src/app/(app)/home/` | dashboard |
-| Drafts | `src/app/(app)/forms/drafts/` | draft forms |
+| Drafts | `src/app/(app)/forms/drafts/` | active drafts (`deleted_at` null) |
+| Trash | `src/app/(app)/forms/trash/` | soft-deleted drafts |
 | Published | `src/app/(app)/forms/published/` | published forms, share links |
 | Create | `src/app/(app)/forms/create/` | new form / sketch upload |
 | Responses | `src/app/(app)/forms/responses/` | browse/export responses |
@@ -35,6 +36,7 @@ Next.js 16.2 · React 19 · TypeScript · Tailwind v4 · shadcn (`base-nova`) ·
 - **Refresh:** `src/lib/supabase/proxy.ts` → `updateSession`.
 - **Public paths:** `/`, `/login`, `/signup`, `/forgot-password`, `/auth/callback`, `/f/*`, `_next/*`.
 - **Mutations:** Server Actions in `src/app/(auth)/actions.ts` only (`signIn`, `signUp`, `signOut`, `requestPasswordReset`).
+- **Product tour:** `src/app/(app)/layout.tsx` auto-starts when `profiles.tour_completed_at` is NULL; `tour-actions.ts` sets it on finish/skip.
 
 ## Supabase clients
 

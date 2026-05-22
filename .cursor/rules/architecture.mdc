@@ -52,7 +52,8 @@ preprocess → vision_extract → structure → validate
 |------|------|-------|
 | Auth pages | `app/(auth)/` | login, signup, forgot-password |
 | App shell | `app/(app)/` | sidebar: home, drafts, published, create, responses |
-| Drafts | `app/(app)/forms/drafts/` | owner draft forms |
+| Drafts | `app/(app)/forms/drafts/` | owner draft forms (`deleted_at` null) |
+| Trash | `app/(app)/forms/trash/` | soft-deleted drafts; 1-day retention |
 | Published | `app/(app)/forms/published/` | published forms + share links |
 | Responses | `app/(app)/forms/responses/` | response picker + sheet (CSV export) |
 | Public forms | `app/f/[slug]/` | no internal `id` in UI |
@@ -72,6 +73,7 @@ Read `frontend/node_modules/next/dist/docs/` for Next.js 16 APIs before changing
 | `security.py` | JWKS-first JWT (`CurrentUser` dependency) |
 | `supabase_client.py` | `get_user_client(jwt)` vs `get_service_client()` |
 | `jobs.py` | `run_generation_job`; `dispatch_to_lambda` when `JOB_DISPATCH_MODE=lambda` |
+| `observability.py` | Optional Langfuse client; traces grouped per generation job |
 | `lambda_handlers.py` | `api_handler` (Mangum), `worker_handler` — AWS only |
 | `routers/` | Thin routers; register in `main.create_app()` |
 | `pipeline/` | LangGraph state + graph + nodes |
