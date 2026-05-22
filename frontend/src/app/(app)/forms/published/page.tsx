@@ -42,6 +42,7 @@ export default async function PublishedPage() {
           "id, title, status, published_at, public_slug, sketch_path, definition",
         )
         .eq("status", "published")
+        .is("deleted_at", null)
         .order("published_at", { ascending: false }),
       supabase.from("form_responses").select("form_id"),
     ]);

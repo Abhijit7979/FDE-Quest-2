@@ -1,20 +1,14 @@
 import Link from "next/link";
-import {
-  AlertCircle,
-  ArrowUpRight,
-  FilePlus2,
-  FileText,
-  Layers,
-} from "lucide-react";
+import { AlertCircle, FilePlus2, FileText, Layers } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { signedSketchUrl } from "@/lib/data/forms";
 import { formListMeta } from "@/lib/forms/list-meta";
-import { FormStatusPill } from "@/components/form-status-pill";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { EmptyState } from "@/components/empty-state";
 import { cn } from "@/lib/utils";
+
+import { DraftListRow } from "./draft-list-row";
 
 export const metadata = { title: "Drafts" };
 
@@ -35,6 +29,7 @@ export default async function DraftsPage() {
     .from("forms")
     .select("id, title, status, updated_at, sketch_path, definition")
     .in("status", ["draft", "archived"])
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -117,44 +112,18 @@ export default async function DraftsPage() {
         {drafts.length > 0 ? (
           <ul>
             {drafts.map((form, i) => (
-              <li
+              <DraftListRow
                 key={form.id}
-                className="anim-rise"
-                style={{ animationDelay: `${i * 50}ms` }}
-              >
-                {i > 0 && <Separator />}
-                <Link
-                  href={`/forms/${form.id}/edit`}
-                  className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-accent/40 sm:px-5"
-                >
-                  <DraftThumb sketchUrl={form.sketchUrl} index={i} />
-                  <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-display text-lg leading-tight truncate">
-                      {form.title || "Untitled form"}
-                    </p>
-                    <p className="font-mono-tech uppercase tracking-[0.16em] text-[11px] text-muted-foreground">
-                      Updated{" "}
-                      {new Date(form.updated_at).toLocaleString(undefined, {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                      <span className="mx-2 text-border">·</span>
-                      {form.fieldCount}{" "}
-                      {form.fieldCount === 1 ? "field" : "fields"}
-                      {form.reviewCount > 0 && (
-                        <>
-                          <span className="mx-2 text-border">·</span>
-                          <span className="text-amber-600 dark:text-amber-400">
-                            {form.reviewCount} to review
-                          </span>
-                        </>
-                      )}
-                    </p>
-                  </div>
-                  <FormStatusPill status={form.status} />
-                  <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-brand" />
-                </Link>
-              </li>
+                id={form.id}
+                title={form.title}
+                status={form.status}
+                updated_at={form.updated_at}
+                fieldCount={form.fieldCount}
+                reviewCount={form.reviewCount}
+                sketchUrl={form.sketchUrl}
+                index={i}
+                showSeparator={i > 0}
+              />
             ))}
           </ul>
         ) : (
@@ -162,32 +131,6 @@ export default async function DraftsPage() {
         )}
       </Card>
     </div>
-  );
-}
-
-function DraftThumb({
-  sketchUrl,
-  index,
-}: {
-  sketchUrl: string | null;
-  index: number;
-}) {
-  if (sketchUrl) {
-    return (
-      <span className="relative h-12 w-16 shrink-0 overflow-hidden rounded-md border border-border bg-muted">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={sketchUrl}
-          alt=""
-          className="h-full w-full object-cover transition-transform group-hover:scale-105"
-        />
-      </span>
-    );
-  }
-  return (
-    <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-md border border-dashed border-border bg-muted/50 font-mono-tech text-[11px] tracking-[0.18em] text-muted-foreground">
-      {String(index + 1).padStart(2, "0")}
-    </span>
   );
 }
 

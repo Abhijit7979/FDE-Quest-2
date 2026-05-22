@@ -25,7 +25,8 @@ export default async function HomePage() {
 
   const { count: formsCount } = await supabase
     .from("forms")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .is("deleted_at", null);
 
   const { count: responsesCount } = await supabase
     .from("form_responses")
@@ -34,16 +35,19 @@ export default async function HomePage() {
   const { count: publishedCount } = await supabase
     .from("forms")
     .select("*", { count: "exact", head: true })
-    .eq("status", "published");
+    .eq("status", "published")
+    .is("deleted_at", null);
 
   const { count: unpublishedCount } = await supabase
     .from("forms")
     .select("*", { count: "exact", head: true })
-    .in("status", ["draft", "archived"]);
+    .in("status", ["draft", "archived"])
+    .is("deleted_at", null);
 
   const { data: recentForms } = await supabase
     .from("forms")
     .select("id, title, status, updated_at")
+    .is("deleted_at", null)
     .order("updated_at", { ascending: false })
     .limit(6);
 
@@ -87,6 +91,7 @@ export default async function HomePage() {
                 size="lg"
                 className="h-11 font-mono-tech uppercase tracking-[0.15em] text-[12px]"
                 render={<Link href="/forms/create" />}
+                data-tour-id="home-cta-sketch"
               >
                 <FilePlus2 className="size-4" />
                 New from sketch

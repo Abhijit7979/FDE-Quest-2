@@ -7,6 +7,7 @@ const labels: Record<string, string> = {
   forms: "Forms",
   create: "Create",
   drafts: "Drafts",
+  trash: "Trash",
   published: "Published",
   responses: "Responses",
 };
@@ -18,21 +19,23 @@ export function AppBreadcrumb() {
   return (
     <nav
       aria-label="Breadcrumb"
-      className="flex items-center gap-2 font-mono-tech uppercase tracking-[0.18em] text-[11px] text-muted-foreground"
+      className="flex min-w-0 flex-1 items-center overflow-hidden font-mono-tech uppercase tracking-[0.18em] text-[11px] text-muted-foreground"
     >
-      <span className="text-foreground/80">Workspace</span>
-      {segments.map((seg, i) => (
-        <span key={seg + i} className="flex items-center gap-2">
-          <span className="text-border">/</span>
-          <span
-            className={
-              i === segments.length - 1 ? "text-brand" : "text-muted-foreground"
-            }
-          >
-            {labels[seg] ?? seg.replace(/-/g, " ")}
+      <p className="truncate">
+        <span className="text-foreground/80">Workspace</span>
+        {segments.map((seg, i) => (
+          <span key={seg + i}>
+            <span className="text-border"> / </span>
+            <span
+              className={
+                i === segments.length - 1 ? "text-brand" : "text-muted-foreground"
+              }
+            >
+              {labels[seg] ?? seg.replace(/-/g, " ")}
+            </span>
           </span>
-        </span>
-      ))}
+        ))}
+      </p>
     </nav>
   );
 }

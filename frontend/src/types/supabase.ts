@@ -82,6 +82,7 @@ export type Database = {
         Row: {
           created_at: string
           definition: Json
+          deleted_at: string | null
           description: string | null
           id: string
           owner_id: string
@@ -96,6 +97,7 @@ export type Database = {
         Insert: {
           created_at?: string
           definition?: Json
+          deleted_at?: string | null
           description?: string | null
           id?: string
           owner_id: string
@@ -110,6 +112,7 @@ export type Database = {
         Update: {
           created_at?: string
           definition?: Json
+          deleted_at?: string | null
           description?: string | null
           id?: string
           owner_id?: string
@@ -189,18 +192,21 @@ export type Database = {
           display_name: string | null
           email: string
           id: string
+          tour_completed_at: string | null
         }
         Insert: {
           created_at?: string
           display_name?: string | null
           email: string
           id: string
+          tour_completed_at?: string | null
         }
         Update: {
           created_at?: string
           display_name?: string | null
           email?: string
           id?: string
+          tour_completed_at?: string | null
         }
         Relationships: []
       }
@@ -232,7 +238,7 @@ export type Database = {
       }
     }
     Functions: {
-      [_ in never]: never
+      purge_expired_deleted_forms: { Args: never; Returns: number }
     }
     Enums: {
       form_status: "draft" | "published" | "archived"

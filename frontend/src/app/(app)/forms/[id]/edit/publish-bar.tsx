@@ -11,6 +11,7 @@ import {
   Undo2,
   Upload,
 } from "lucide-react";
+import { DeleteDraftButton } from "@/components/delete-draft-button";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +57,7 @@ type RegenPhase =
 
 export function PublishBar({
   formId,
+  formTitle,
   status,
   publicSlug,
   publishedAt,
@@ -70,6 +72,7 @@ export function PublishBar({
   onRegenerated,
 }: {
   formId: string;
+  formTitle: string;
   status: FormStatus;
   publicSlug: string | null;
   publishedAt: string | null;
@@ -415,6 +418,13 @@ export function PublishBar({
             </>
           )}
           <Separator orientation="vertical" className="hidden sm:block h-6" />
+          {isDraft && (
+            <DeleteDraftButton
+              formId={formId}
+              formTitle={formTitle}
+              redirectToTrash
+            />
+          )}
           {isPublished ? (
             <Button
               size="sm"

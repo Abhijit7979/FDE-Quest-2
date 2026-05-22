@@ -20,9 +20,10 @@ export default async function EditFormPage({
   const { data, error } = await supabase
     .from("forms")
     .select(
-      "id, owner_id, title, description, status, public_slug, definition, sketch_path, created_at, updated_at, published_at",
+      "id, owner_id, title, description, status, public_slug, definition, sketch_path, created_at, updated_at, published_at, deleted_at",
     )
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle<FormRecord>();
 
   if (error || !data) notFound();

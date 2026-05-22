@@ -124,6 +124,7 @@ export async function fetchResponseFormSummaries(
       supabase
         .from("forms")
         .select("id, title, status, definition")
+        .is("deleted_at", null)
         .order("updated_at", { ascending: false }),
       supabase
         .from("form_responses")
@@ -180,6 +181,7 @@ export async function fetchFormResponseSheet(
     .from("forms")
     .select("id, title, status, definition")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (formErr) throw new ResponsesDataError(formErr.message);
@@ -226,6 +228,7 @@ export async function fetchFormFilterOptions(
   const { data, error } = await supabase
     .from("forms")
     .select("id, title")
+    .is("deleted_at", null)
     .order("title", { ascending: true });
 
   if (error) throw new ResponsesDataError(error.message);

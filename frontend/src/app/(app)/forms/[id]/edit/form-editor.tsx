@@ -296,6 +296,7 @@ export function FormEditor({
 
       <PublishBar
         formId={form.id}
+        formTitle={title}
         status={status}
         publicSlug={publicSlug}
         publishedAt={publishedAt}

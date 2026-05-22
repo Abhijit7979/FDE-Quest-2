@@ -14,6 +14,9 @@ const generateSlug = customAlphabet(slugAlphabet, 12);
 
 export type FormStatus = "draft" | "published" | "archived";
 
+/** Soft-deleted drafts are kept in trash for this long before purge. */
+export const TRASH_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 export type FormRecord = {
   id: string;
   owner_id: string;
@@ -26,7 +29,16 @@ export type FormRecord = {
   created_at: string;
   updated_at: string;
   published_at: string | null;
+  deleted_at: string | null;
 };
+
+export function trashExpiresAt(deletedAt: string): Date {
+  return new Date(new Date(deletedAt).getTime() + TRASH_RETENTION_MS);
+}
+
+export function isTrashRestorable(deletedAt: string): boolean {
+  return trashExpiresAt(deletedAt) > new Date();
+}
 
 export type DraftPatch = {
   title?: string;
@@ -77,6 +89,7 @@ export async function saveFormDraft(
     .from("forms")
     .update(update)
     .eq("id", formId)
+    .is("deleted_at", null)
     .select("updated_at")
     .single<{ updated_at: string }>();
 
@@ -117,6 +130,7 @@ export async function publishForm(
       published_at: publishedAt,
     })
     .eq("id", formId)
+    .is("deleted_at", null)
     .select("public_slug, published_at")
     .single<{ public_slug: string; published_at: string }>();
 
@@ -132,6 +146,60 @@ export async function unpublishForm(
     .from("forms")
     .update({ status: "draft" })
     .eq("id", formId);
+  if (error) throw new FormsDataError(error.message);
+}
+
+export async function softDeleteDraft(
+  supabase: SupabaseClient,
+  formId: string,
+): Promise<{ deleted_at: string }> {
+  const { data: row, error: readErr } = await supabase
+    .from("forms")
+    .select("status, deleted_at")
+    .eq("id", formId)
+    .maybeSingle<{ status: FormStatus; deleted_at: string | null }>();
+  if (readErr) throw new FormsDataError(readErr.message);
+  if (!row) throw new FormsDataError("Form not found.");
+  if (row.deleted_at) throw new FormsDataError("This draft is already in trash.");
+  if (row.status !== "draft") {
+    throw new FormsDataError("Only drafts can be moved to trash.");
+  }
+
+  const deletedAt = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("forms")
+    .update({ deleted_at: deletedAt })
+    .eq("id", formId)
+    .eq("status", "draft")
+    .is("deleted_at", null)
+    .select("deleted_at")
+    .single<{ deleted_at: string }>();
+
+  if (error) throw new FormsDataError(error.message);
+  return data;
+}
+
+export async function restoreDraftFromTrash(
+  supabase: SupabaseClient,
+  formId: string,
+): Promise<void> {
+  const { data: row, error: readErr } = await supabase
+    .from("forms")
+    .select("deleted_at")
+    .eq("id", formId)
+    .maybeSingle<{ deleted_at: string | null }>();
+  if (readErr) throw new FormsDataError(readErr.message);
+  if (!row?.deleted_at) throw new FormsDataError("This form is not in trash.");
+  if (!isTrashRestorable(row.deleted_at)) {
+    throw new FormsDataError("Trash retention expired; this form can no longer be restored.");
+  }
+
+  const { error } = await supabase
+    .from("forms")
+    .update({ deleted_at: null })
+    .eq("id", formId)
+    .not("deleted_at", "is", null);
+
   if (error) throw new FormsDataError(error.message);
 }
 

@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, FilePlus2, Inbox, Layers, LogOut, Radio } from "lucide-react";
+import {
+  Home,
+  FilePlus2,
+  Inbox,
+  Layers,
+  LogOut,
+  Radio,
+  Trash2,
+} from "lucide-react";
 import { signOut } from "@/app/(auth)/actions";
 import { BrandMark } from "@/components/brand-mark";
 import {
@@ -29,11 +37,12 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const items = [
-  { title: "Home", href: "/home", icon: Home, idx: "01" },
-  { title: "Drafts", href: "/forms/drafts", icon: Layers, idx: "02" },
-  { title: "Published", href: "/forms/published", icon: Radio, idx: "03" },
-  { title: "Create form", href: "/forms/create", icon: FilePlus2, idx: "04" },
-  { title: "Responses", href: "/forms/responses", icon: Inbox, idx: "05" },
+  { title: "Home", href: "/home", icon: Home, idx: "01", tourId: "sidebar-home" },
+  { title: "Drafts", href: "/forms/drafts", icon: Layers, idx: "02", tourId: "sidebar-drafts" },
+  { title: "Trash", href: "/forms/trash", icon: Trash2, idx: "03", tourId: "sidebar-trash" },
+  { title: "Published", href: "/forms/published", icon: Radio, idx: "04", tourId: "sidebar-published" },
+  { title: "Create form", href: "/forms/create", icon: FilePlus2, idx: "05", tourId: "sidebar-create" },
+  { title: "Responses", href: "/forms/responses", icon: Inbox, idx: "06", tourId: "sidebar-responses" },
 ];
 
 export function AppSidebar({ email }: { email: string }) {
@@ -53,13 +62,13 @@ export function AppSidebar({ email }: { email: string }) {
           <SidebarGroupLabel className="font-mono-tech uppercase tracking-[0.22em] text-[10px] text-muted-foreground">
             Workspace
           </SidebarGroupLabel>
-          <SidebarGroupContent>
+          <SidebarGroupContent data-tour-id="sidebar-nav">
             <SidebarMenu>
               {items.map((item) => {
                 const active =
                   pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
-                  <SidebarMenuItem key={item.href}>
+                  <SidebarMenuItem key={item.href} data-tour-id={item.tourId}>
                     <SidebarMenuButton
                       isActive={active}
                       className="group/item relative h-9 data-[active=true]:bg-brand data-[active=true]:text-brand-foreground data-[active=true]:hover:bg-brand-ink"
