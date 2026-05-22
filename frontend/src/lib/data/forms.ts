@@ -219,6 +219,32 @@ export async function signedSketchUrl(
   return data.signedUrl;
 }
 
+/**
+ * Batch variant of {@link signedSketchUrl}. Generates signed URLs for many
+ * sketch paths in a single Storage request instead of one call per path,
+ * and returns a `path -> signedUrl` map. Paths that fail to sign are omitted.
+ */
+export async function signedSketchUrls(
+  supabase: SupabaseClient,
+  storagePaths: string[],
+  ttlSeconds = 60 * 10,
+): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  if (storagePaths.length === 0) return urls;
+
+  const { data, error } = await supabase.storage
+    .from(SKETCHES_BUCKET)
+    .createSignedUrls(storagePaths, ttlSeconds);
+  if (error || !data) return urls;
+
+  for (const entry of data) {
+    if (entry.path && entry.signedUrl) {
+      urls.set(entry.path, entry.signedUrl);
+    }
+  }
+  return urls;
+}
+
 export function buildShareUrl(slug: string): string {
   const base =
     process.env.NEXT_PUBLIC_APP_URL ??

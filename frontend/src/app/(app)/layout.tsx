@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/server";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppBreadcrumb } from "@/components/app-breadcrumb";
-import { AppTour } from "@/components/app-tour";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { TourTriggerButton } from "@/components/tour-trigger-button";
 import {
   SidebarInset,
   SidebarProvider,
@@ -17,20 +15,9 @@ export default async function AppLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("tour_completed_at")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const tourAutoStart = profile?.tour_completed_at == null;
 
   return (
     <SidebarProvider>
@@ -41,14 +28,12 @@ export default async function AppLayout({
           <Separator orientation="vertical" className="mr-1 h-4 shrink-0" />
           <AppBreadcrumb />
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            <TourTriggerButton />
             <ThemeToggle />
           </div>
         </header>
         <main id="main-content" className="relative flex-1 p-6 md:p-8">
           {children}
         </main>
-        <AppTour autoStart={tourAutoStart} />
       </SidebarInset>
     </SidebarProvider>
   );

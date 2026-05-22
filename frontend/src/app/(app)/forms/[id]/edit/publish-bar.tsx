@@ -318,6 +318,10 @@ export function PublishBar({
               <img
                 src={sketchUrl}
                 alt="Source sketch"
+                width={80}
+                height={64}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover transition-transform group-hover:scale-105"
               />
             </a>

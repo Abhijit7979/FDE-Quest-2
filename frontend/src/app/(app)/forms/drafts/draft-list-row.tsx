@@ -144,6 +144,10 @@ function DraftThumb({
         <img
           src={sketchUrl}
           alt=""
+          width={64}
+          height={48}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </span>

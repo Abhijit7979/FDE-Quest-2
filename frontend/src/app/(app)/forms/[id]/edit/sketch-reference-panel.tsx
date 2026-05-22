@@ -21,6 +21,10 @@ export function SketchReferencePanel({ sketchUrl }: { sketchUrl: string }) {
             <img
               src={sketchUrl}
               alt=""
+              width={56}
+              height={40}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover"
             />
           </span>
@@ -46,6 +50,8 @@ export function SketchReferencePanel({ sketchUrl }: { sketchUrl: string }) {
               <img
                 src={sketchUrl}
                 alt="Source sketch for this form"
+                loading="lazy"
+                decoding="async"
                 className="mx-auto max-h-52 w-full object-contain"
               />
             </a>

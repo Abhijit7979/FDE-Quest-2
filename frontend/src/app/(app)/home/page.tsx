@@ -7,7 +7,10 @@ import {
   ScanLine,
   Sparkles,
 } from "lucide-react";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  getCurrentUser,
+} from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -19,37 +22,42 @@ export const metadata = { title: "Home" };
 
 export default async function HomePage() {
   const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  const { count: formsCount } = await supabase
-    .from("forms")
-    .select("*", { count: "exact", head: true })
-    .is("deleted_at", null);
-
-  const { count: responsesCount } = await supabase
-    .from("form_responses")
-    .select("*", { count: "exact", head: true });
-
-  const { count: publishedCount } = await supabase
-    .from("forms")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "published")
-    .is("deleted_at", null);
-
-  const { count: unpublishedCount } = await supabase
-    .from("forms")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["draft", "archived"])
-    .is("deleted_at", null);
-
-  const { data: recentForms } = await supabase
-    .from("forms")
-    .select("id, title, status, updated_at")
-    .is("deleted_at", null)
-    .order("updated_at", { ascending: false })
-    .limit(6);
+  // All six round-trips are independent — run them concurrently so TTFB is
+  // bound by the slowest query, not the sum of all of them.
+  const [
+    user,
+    { count: formsCount },
+    { count: responsesCount },
+    { count: publishedCount },
+    { count: unpublishedCount },
+    { data: recentForms },
+  ] = await Promise.all([
+    getCurrentUser(),
+    supabase
+      .from("forms")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
+    supabase
+      .from("form_responses")
+      .select("*", { count: "exact", head: true }),
+    supabase
+      .from("forms")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "published")
+      .is("deleted_at", null),
+    supabase
+      .from("forms")
+      .select("*", { count: "exact", head: true })
+      .in("status", ["draft", "archived"])
+      .is("deleted_at", null),
+    supabase
+      .from("forms")
+      .select("id, title, status, updated_at")
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
+      .limit(6),
+  ]);
 
   const firstName = user?.email?.split("@")[0] ?? "there";
 
@@ -91,7 +99,6 @@ export default async function HomePage() {
                 size="lg"
                 className="h-11 font-mono-tech uppercase tracking-[0.15em] text-[12px]"
                 render={<Link href="/forms/create" />}
-                data-tour-id="home-cta-sketch"
               >
                 <FilePlus2 className="size-4" />
                 New from sketch

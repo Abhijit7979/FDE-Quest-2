@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -25,3 +26,16 @@ export async function createSupabaseServerClient() {
     },
   );
 }
+
+/**
+ * Returns the authenticated user, validating the JWT against the Supabase
+ * Auth server. Wrapped in React `cache()` so layout + page in the same
+ * request share a single network round-trip instead of one each.
+ */
+export const getCurrentUser = cache(async () => {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});

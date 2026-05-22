@@ -7,7 +7,7 @@ import {
   Radio,
 } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { signedSketchUrl } from "@/lib/data/forms";
+import { signedSketchUrls } from "@/lib/data/forms";
 import { formListMeta } from "@/lib/forms/list-meta";
 import { FormStatusPill } from "@/components/form-status-pill";
 import { Button } from "@/components/ui/button";
@@ -55,24 +55,26 @@ export default async function PublishedPage() {
     responseCounts.set(r.form_id, (responseCounts.get(r.form_id) ?? 0) + 1);
   }
 
-  const published: PublishedRow[] = await Promise.all(
-    (rows ?? []).map(async (form) => {
-      const { fieldCount } = formListMeta(form.definition);
-      const sketchUrl = form.sketch_path
-        ? await signedSketchUrl(supabase, form.sketch_path, 60 * 60)
-        : null;
-      return {
-        id: form.id,
-        title: form.title,
-        status: form.status,
-        published_at: form.published_at!,
-        public_slug: form.public_slug!,
-        fieldCount,
-        responseCount: responseCounts.get(form.id) ?? 0,
-        sketchUrl,
-      };
-    }),
-  );
+  const sketchPaths = (rows ?? [])
+    .map((form) => form.sketch_path)
+    .filter((path): path is string => Boolean(path));
+  const sketchUrls = await signedSketchUrls(supabase, sketchPaths, 60 * 60);
+
+  const published: PublishedRow[] = (rows ?? []).map((form) => {
+    const { fieldCount } = formListMeta(form.definition);
+    return {
+      id: form.id,
+      title: form.title,
+      status: form.status,
+      published_at: form.published_at!,
+      public_slug: form.public_slug!,
+      fieldCount,
+      responseCount: responseCounts.get(form.id) ?? 0,
+      sketchUrl: form.sketch_path
+        ? sketchUrls.get(form.sketch_path) ?? null
+        : null,
+    };
+  });
 
   const totalResponses = published.reduce((n, p) => n + p.responseCount, 0);
 
@@ -208,6 +210,10 @@ function PublishedThumb({
         <img
           src={sketchUrl}
           alt=""
+          width={64}
+          height={48}
+          loading="lazy"
+          decoding="async"
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </span>

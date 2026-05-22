@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -13,13 +14,19 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
+// `generateMetadata` and the page body both need the form. Wrapping the
+// fetch in `cache()` (keyed on `slug`) collapses them into one DB query.
+const getForm = cache(async (slug: string) => {
+  const supabase = await createSupabaseServerClient();
+  return fetchPublicFormBySlug(supabase, slug);
+});
+
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const supabase = await createSupabaseServerClient();
-    const form = await fetchPublicFormBySlug(supabase, slug);
+    const form = await getForm(slug);
     if (!form) return { title: "Form not found" };
     return {
       title: form.title,
@@ -35,8 +42,7 @@ export default async function PublicFormPage({ params }: PageProps) {
 
   let form;
   try {
-    const supabase = await createSupabaseServerClient();
-    form = await fetchPublicFormBySlug(supabase, slug);
+    form = await getForm(slug);
   } catch (err) {
     if (err instanceof PublicFormError) {
       throw new Error(err.message);

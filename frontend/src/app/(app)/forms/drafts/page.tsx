@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AlertCircle, FilePlus2, FileText, Layers } from "lucide-react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { signedSketchUrl } from "@/lib/data/forms";
+import { signedSketchUrls } from "@/lib/data/forms";
 import { formListMeta } from "@/lib/forms/list-meta";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -36,23 +36,25 @@ export default async function DraftsPage() {
     throw new Error(error.message);
   }
 
-  const drafts: DraftRow[] = await Promise.all(
-    (rows ?? []).map(async (form) => {
-      const { fieldCount, reviewCount } = formListMeta(form.definition);
-      const sketchUrl = form.sketch_path
-        ? await signedSketchUrl(supabase, form.sketch_path, 60 * 60)
-        : null;
-      return {
-        id: form.id,
-        title: form.title,
-        status: form.status,
-        updated_at: form.updated_at,
-        fieldCount,
-        reviewCount,
-        sketchUrl,
-      };
-    }),
-  );
+  const sketchPaths = (rows ?? [])
+    .map((form) => form.sketch_path)
+    .filter((path): path is string => Boolean(path));
+  const sketchUrls = await signedSketchUrls(supabase, sketchPaths, 60 * 60);
+
+  const drafts: DraftRow[] = (rows ?? []).map((form) => {
+    const { fieldCount, reviewCount } = formListMeta(form.definition);
+    return {
+      id: form.id,
+      title: form.title,
+      status: form.status,
+      updated_at: form.updated_at,
+      fieldCount,
+      reviewCount,
+      sketchUrl: form.sketch_path
+        ? sketchUrls.get(form.sketch_path) ?? null
+        : null,
+    };
+  });
 
   const reviewTotal = drafts.reduce((n, d) => n + d.reviewCount, 0);
 
