@@ -1,7 +1,6 @@
 # Case Study 
 
 
-
 ## Client Problem Statement
 
 ### **Business context**  
@@ -141,3 +140,67 @@ For quality, I used Langfuse **LLM-as-a-Judge** with an OpenAI model to score ou
 - Test more sketches earlier, with simple pass/fail checks, before building the full app.
 - Write a short how-to for RSI’s team (upload, review, publish, read answers)—not only docs for engineers.
 - Show the client a demo after each phase so progress is easy to see, not only in the codebase.
+
+
+## Production App 
+link : https://sketch-to-form.vercel.app/login 
+
+Demo account credentials : 
+- Email : sar.abhijit2003@gmail.com
+- Password : 123456 
+
+### Interface images
+
+<link rel="stylesheet" href="application_images/readme-carousel.css">
+
+<div class="ui-carousel">
+  <input type="radio" name="ui-carousel" id="ui-r1" checked>
+  <input type="radio" name="ui-carousel" id="ui-r2">
+  <input type="radio" name="ui-carousel" id="ui-r3">
+  <input type="radio" name="ui-carousel" id="ui-r4">
+  <input type="radio" name="ui-carousel" id="ui-r5">
+  <input type="radio" name="ui-carousel" id="ui-r6">
+
+  <div class="viewport">
+    <div class="slide slide-1">
+      <img src="application_images/image.png" alt="App screen 1">
+    </div>
+    <div class="slide slide-2">
+      <img src="application_images/image%20copy.png" alt="App screen 2">
+    </div>
+    <div class="slide slide-3">
+      <img src="application_images/image%20copy%202.png" alt="App screen 3">
+    </div>
+    <div class="slide slide-4">
+      <img src="application_images/image%20copy%203.png" alt="App screen 4">
+    </div>
+    <div class="slide slide-5">
+      <img src="application_images/image%20copy%204.png" alt="App screen 5">
+    </div>
+    <div class="slide slide-6">
+      <img src="application_images/image%20copy%205.png" alt="App screen 6">
+    </div>
+  </div>
+
+  <label for="ui-r6" class="arrow prev prev-1" title="Previous">&#9664;</label>
+  <label for="ui-r2" class="arrow next next-1" title="Next">&#9654;</label>
+  <label for="ui-r1" class="arrow prev prev-2" title="Previous">&#9664;</label>
+  <label for="ui-r3" class="arrow next next-2" title="Next">&#9654;</label>
+  <label for="ui-r2" class="arrow prev prev-3" title="Previous">&#9664;</label>
+  <label for="ui-r4" class="arrow next next-3" title="Next">&#9654;</label>
+  <label for="ui-r3" class="arrow prev prev-4" title="Previous">&#9664;</label>
+  <label for="ui-r5" class="arrow next next-4" title="Next">&#9654;</label>
+  <label for="ui-r4" class="arrow prev prev-5" title="Previous">&#9664;</label>
+  <label for="ui-r6" class="arrow next next-5" title="Next">&#9654;</label>
+  <label for="ui-r5" class="arrow prev prev-6" title="Previous">&#9664;</label>
+  <label for="ui-r1" class="arrow next next-6" title="Next">&#9654;</label>
+
+  <div class="dots">
+    <label for="ui-r1" class="dot dot-1" title="1"></label>
+    <label for="ui-r2" class="dot dot-2" title="2"></label>
+    <label for="ui-r3" class="dot dot-3" title="3"></label>
+    <label for="ui-r4" class="dot dot-4" title="4"></label>
+    <label for="ui-r5" class="dot dot-5" title="5"></label>
+    <label for="ui-r6" class="dot dot-6" title="6"></label>
+  </div>
+</div>

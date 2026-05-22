@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sketch-to-Form — App screens</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      background: #111;
+      min-height: 100vh;
+    }
+    .carousel {
+      position: relative;
+      width: 100%;
+      line-height: 0;
+    }
+    .carousel img {
+      display: block;
+      width: 100%;
+      height: auto;
+      vertical-align: top;
+    }
+    .btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 40px;
+      height: 40px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.45);
+      font-size: 18px;
+      line-height: 1;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn:hover { background: rgba(0, 0, 0, 0.65); }
+    .btn.prev { left: 8px; }
+    .btn.next { right: 8px; }
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 0 14px;
+      line-height: 1;
+      background: #111;
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: none;
+      background: #555;
+      cursor: pointer;
+      padding: 0;
+    }
+    .dot.active { background: #ccc; }
+  </style>
+</head>
+<body>
+  <div class="carousel">
+    <button type="button" class="btn prev" id="prev" aria-label="Previous">&#9664;</button>
+    <img id="slide" src="image.png" alt="App screen">
+    <button type="button" class="btn next" id="next" aria-label="Next">&#9654;</button>
+  </div>
+  <div class="dots" id="dots"></div>
+
+  <script>
+    const slides = [
+      { src: "image.png", alt: "App screen 1" },
+      { src: "image copy.png", alt: "App screen 2" },
+      { src: "image copy 2.png", alt: "App screen 3" },
+      { src: "image copy 3.png", alt: "App screen 4" },
+      { src: "image copy 4.png", alt: "App screen 5" },
+      { src: "image copy 5.png", alt: "App screen 6" },
+    ];
+    let index = 0;
+    const img = document.getElementById("slide");
+    const dotsEl = document.getElementById("dots");
+
+    slides.forEach((_, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "dot" + (i === 0 ? " active" : "");
+      b.title = "Screen " + (i + 1);
+      b.addEventListener("click", () => go(i));
+      dotsEl.appendChild(b);
+    });
+
+    function render() {
+      const s = slides[index];
+      img.src = encodeURI(s.src);
+      img.alt = s.alt;
+      dotsEl.querySelectorAll(".dot").forEach((d, i) => {
+        d.classList.toggle("active", i === index);
+      });
+    }
+
+    function go(i) {
+      index = (i + slides.length) % slides.length;
+      render();
+      history.replaceState(null, "", "#slide-" + (index + 1));
+    }
+
+    function fromHash() {
+      const m = location.hash.match(/^#slide-(\d+)$/);
+      if (m) go(Number(m[1]) - 1);
+    }
+
+    document.getElementById("prev").addEventListener("click", () => go(index - 1));
+    document.getElementById("next").addEventListener("click", () => go(index + 1));
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") go(index - 1);
+      if (e.key === "ArrowRight") go(index + 1);
+    });
+    window.addEventListener("hashchange", fromHash);
+    fromHash();
+  </script>
+</body>
+</html>
