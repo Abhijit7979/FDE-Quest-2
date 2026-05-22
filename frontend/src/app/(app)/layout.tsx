@@ -1,8 +1,12 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/supabase/server";
+import {
+  createSupabaseServerClient,
+  getCurrentUser,
+} from "@/lib/supabase/server";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppBreadcrumb } from "@/components/app-breadcrumb";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ProductTour } from "@/components/product-tour";
 import {
   SidebarInset,
   SidebarProvider,
@@ -19,6 +23,17 @@ export default async function AppLayout({
 
   if (!user) redirect("/login");
 
+  // The product tour auto-triggers for any user whose `tour_completed_at` is
+  // still NULL (genuinely new sign-ups — existing accounts were backfilled in
+  // migration 20260522130000). Finishing or skipping stamps the column.
+  const supabase = await createSupabaseServerClient();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("tour_completed_at")
+    .eq("id", user.id)
+    .maybeSingle();
+  const tourPending = !profile?.tour_completed_at;
+
   return (
     <SidebarProvider>
       <AppSidebar email={user.email ?? ""} />
@@ -28,6 +43,7 @@ export default async function AppLayout({
           <Separator orientation="vertical" className="mr-1 h-4 shrink-0" />
           <AppBreadcrumb />
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <ProductTour autoStart={tourPending} />
             <ThemeToggle />
           </div>
         </header>
