@@ -1,12 +1,6 @@
 # Case Study 
 
-## Client Details 
-- Client name : Mohith Buragadda
-- Client email : mohith@rsigeotech.com
-- Client company : RSI Remote sensing instruments LLP 
-- Client designation : Vice President board of directors 
-- Client company website : https://www.rsigeotech.com/
-- Client company domain : Geo - Tech 
+
 
 ## Client Problem Statement
 
@@ -103,8 +97,47 @@ Both tools read the same repo-level instructions so every session starts aligned
 
 That setup cut repeated explanations and kept PRD decisions, code style, and Supabase/RLS constraints consistent across planning and build.
 
-## Evaluation results and Baseline Comparison 
+## Evaluation and baseline comparison
 
-i have used Langfuse to trace the agent input and out put and used langfuse internal evaluation tool LLM-as-a-Judge to evaluation with openai model 
+Before building the full web app, I had to know the sketch agent was working—not just that it returned JSON.
 
-where are sample images 
+**Before:** I checked a few runs in server logs by hand. Slow, easy to miss mistakes, hard to compare after a prompt change.
+
+**After:** I wired **[Langfuse](https://langfuse.com/)** into the LangGraph job so every run is saved. I can open one trace and see each step (`preprocess` → `vision_extract` → `structure` → `validate` → `persist`), the prompt, model, time, and cost. Retries for the same form stay grouped under one session.
+
+For quality, I used Langfuse **LLM-as-a-Judge** with an OpenAI model to score outputs on a **0–1 relevance** scale—so I did not have to read every JSON by hand. Sample runs on real sketches took about **5–6 seconds** end to end; that was enough to tune prompts and move to Phase 2.
+
+<p align="center"><em>Langfuse trace — each agent step and the vision LLM call</em></p>
+
+<div align="center" style="max-width: 960px; margin: 0 auto 24px;">
+  <img
+    src="images/Langfuse.png"
+    alt="Langfuse tracing UI for sketch-to-form LangGraph job"
+    style="max-width: 100%; height: auto; border-radius: 8px;"
+  />
+</div>
+
+<p align="center"><em>LLM-as-a-Judge — automatic relevance scoring on traces</em></p>
+
+<div align="center" style="max-width: 960px; margin: 0 auto;">
+  <img
+    src="images/LLM_as_a_judge.png"
+    alt="Langfuse LLM-as-a-Judge evaluator for sketch-to-form outputs"
+    style="max-width: 100%; height: auto; border-radius: 8px;"
+  />
+</div>
+
+## What I Learned and What I Would Improve
+
+**What I learned**
+
+- Start with the big picture—how RSI works today and how the app fits—before writing code. That kept the build focused on their real problem, not a generic form tool.
+- Use the right AI model for the task: stronger models for planning (PRD, architecture), faster/cheaper ones for everyday coding.
+- Improve in small steps: prove sketch → JSON first, then the web app; add Langfuse when manual checks were not enough.
+- Keep the repo “context-ready” (`CLAUDE.md`, `.cursor/`, `.claude/`) so any developer—or AI session—can jump in without starting from zero.
+
+**What I would improve next time**
+
+- Test more sketches earlier, with simple pass/fail checks, before building the full app.
+- Write a short how-to for RSI’s team (upload, review, publish, read answers)—not only docs for engineers.
+- Show the client a demo after each phase so progress is easy to see, not only in the codebase.
