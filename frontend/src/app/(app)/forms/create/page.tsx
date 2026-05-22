@@ -62,7 +62,7 @@ export default function CreateFormPage() {
         />
         <div
           aria-hidden
-          className="absolute -top-10 -right-20 h-56 w-80 -rotate-3 rsi-stripes opacity-30"
+          className="absolute -top-10 -right-20 h-56 w-80 -rotate-3 brand-stripes opacity-30"
         />
         <CardContent className="relative p-0">
           <SketchUploader />

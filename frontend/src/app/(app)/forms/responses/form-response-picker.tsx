@@ -139,7 +139,7 @@ function EmptyResponses() {
       <div aria-hidden className="absolute inset-0 blueprint-grid-fine opacity-60" />
       <div
         aria-hidden
-        className="absolute -top-10 left-1/2 h-32 w-72 -translate-x-1/2 rsi-stripes opacity-30"
+        className="absolute -top-10 left-1/2 h-32 w-72 -translate-x-1/2 brand-stripes opacity-30"
       />
       <CardContent className="relative flex flex-col items-center justify-center px-6 py-20 text-center">
         <div className="relative mb-6">

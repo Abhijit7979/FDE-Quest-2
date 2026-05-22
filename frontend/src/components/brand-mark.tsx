@@ -1,9 +1,6 @@
 import { cn } from "@/lib/utils";
 
-/**
- * The signature mark — five horizontal cobalt stripes echoing the RSI logo,
- * locked up with the product wordmark.
- */
+/** Five horizontal cobalt stripes locked up with the sketch-to-form wordmark. */
 export function BrandMark({
   className,
   size = "md",
@@ -44,7 +41,7 @@ export function BrandMark({
               dims.sub,
             )}
           >
-            RSI / paper → live
+            paper → live
           </span>
         </div>
       )}
@@ -71,7 +68,7 @@ export function Stripes({ className }: { className?: string }) {
             rx={1.2}
           />
         ))}
-        {/* vertical accent — echoes the "I" stroke on the right of the RSI logo */}
+        {/* vertical accent on the right of the stripe mark */}
         <rect x={32} y={6} width={2.4} height={24} rx={1.2} />
       </g>
     </svg>

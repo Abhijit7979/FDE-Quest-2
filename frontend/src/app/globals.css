@@ -62,7 +62,7 @@
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.16 0.03 268);
 
-  /* RSI brand cobalt */
+  /* Brand cobalt */
   --brand: oklch(0.34 0.18 268);
   --brand-ink: oklch(0.24 0.16 268);
   --brand-foreground: oklch(0.985 0.006 255);
@@ -168,9 +168,8 @@
     font-feature-settings: "ss02", "zero", "cv02";
   }
 
-  /* The signature RSI five-stripe mark, rendered as a CSS background.
-     Used as decoration on auth panels, dashboard hero, etc. */
-  .rsi-stripes {
+  /* Five-stripe mark as a CSS background (auth panels, hero, etc.). */
+  .brand-stripes {
     --stripe: var(--brand);
     background-image: repeating-linear-gradient(
       to bottom,
@@ -179,7 +178,7 @@
     );
   }
 
-  .rsi-stripes-thick {
+  .brand-stripes-thick {
     --stripe: var(--brand);
     background-image: repeating-linear-gradient(
       to bottom,
@@ -188,7 +187,7 @@
     );
   }
 
-  .rsi-stripes-horizontal {
+  .brand-stripes-horizontal {
     --stripe: color-mix(in oklch, var(--brand) 85%, transparent);
     background-image: repeating-linear-gradient(
       to right,
@@ -246,7 +245,7 @@
     text-wrap: balance;
   }
 
-  @keyframes rsi-rise {
+  @keyframes brand-rise {
     from {
       opacity: 0;
       transform: translateY(10px);
@@ -258,10 +257,10 @@
   }
 
   .anim-rise {
-    animation: rsi-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: brand-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
-  @keyframes rsi-stripe-slide {
+  @keyframes brand-stripe-slide {
     from {
       background-position: 0 -40px;
     }
@@ -271,10 +270,10 @@
   }
 
   .anim-stripes-in {
-    animation: rsi-stripe-slide 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation: brand-stripe-slide 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 
-  @keyframes rsi-review-pulse {
+  @keyframes brand-review-pulse {
     0%,
     100% {
       border-left-color: color-mix(in oklch, oklch(0.75 0.15 75) 40%, transparent);
@@ -284,7 +283,7 @@
     }
   }
 
-  @keyframes rsi-save-pulse {
+  @keyframes brand-save-pulse {
     0%,
     100% {
       opacity: 1;
@@ -297,11 +296,11 @@
   }
 
   .anim-review-pulse {
-    animation: rsi-review-pulse 1.2s ease-out 2;
+    animation: brand-review-pulse 1.2s ease-out 2;
   }
 
   .anim-save-pulse {
-    animation: rsi-save-pulse 2s ease-in-out infinite;
+    animation: brand-save-pulse 2s ease-in-out infinite;
   }
 
   .proofing-frame {

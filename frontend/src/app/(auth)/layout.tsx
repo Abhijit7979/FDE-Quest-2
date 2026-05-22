@@ -12,12 +12,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* big decorative stripes block, top-right */}
         <div
           aria-hidden
-          className="absolute -top-10 -right-16 h-[420px] w-[420px] rotate-[8deg] rsi-stripes-thick opacity-30 [--stripe:white]"
+          className="absolute -top-10 -right-16 h-[420px] w-[420px] rotate-[8deg] brand-stripes-thick opacity-30 [--stripe:white]"
         />
         {/* small stripes block, bottom-left */}
         <div
           aria-hidden
-          className="absolute bottom-24 -left-10 h-44 w-72 -rotate-[6deg] rsi-stripes opacity-25 [--stripe:white]"
+          className="absolute bottom-24 -left-10 h-44 w-72 -rotate-[6deg] brand-stripes opacity-25 [--stripe:white]"
         />
 
         <div className="relative z-10 flex items-center gap-3">
@@ -27,7 +27,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               sketch·to·form
             </span>
             <span className="mt-1 font-mono-tech uppercase tracking-[0.22em] text-[10px] text-white/70 hidden sm:block">
-              RSI · Engineering build
+              Vision pipeline · internal build
             </span>
           </div>
         </div>
@@ -65,7 +65,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <div className="relative z-10 flex items-end justify-between gap-4 text-xs text-white/60 font-mono-tech uppercase tracking-[0.18em]">
-          <span className="hidden sm:inline">© RSI · 2026</span>
+          <span className="hidden sm:inline">© sketch-to-form · 2026</span>
           <span className="flex items-center gap-2 ml-auto lg:ml-0">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse shrink-0" />
             <span className="hidden sm:inline">Pipeline · operational</span>

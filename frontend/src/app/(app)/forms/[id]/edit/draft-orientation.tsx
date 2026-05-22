@@ -8,7 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { FormField } from "@/lib/schema/definition";
 
-const DISMISS_KEY = "rsi-draft-orientation-dismissed";
+const DISMISS_KEY = "stf-draft-orientation-dismissed";
 
 const STEPS = [
   { num: "01", label: "Edit fields" },
@@ -84,7 +84,7 @@ export function DraftOrientation({
                     ? "border-brand bg-brand-tint pl-4"
                     : "border-border bg-card/80 text-muted-foreground",
                   i === activeStep &&
-                    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:rounded-l-md before:bg-brand before:rsi-stripes",
+                    "before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:rounded-l-md before:bg-brand before:brand-stripes",
                 )}
                 style={{ animationDelay: `${i * 60}ms` }}
               >

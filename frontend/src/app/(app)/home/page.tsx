@@ -71,7 +71,7 @@ export default async function HomePage() {
         />
         <div
           aria-hidden
-          className="absolute -top-8 -right-10 h-44 w-72 rsi-stripes opacity-50"
+          className="absolute -top-8 -right-10 h-44 w-72 brand-stripes opacity-50"
         />
         <div
           aria-hidden
@@ -90,7 +90,7 @@ export default async function HomePage() {
               into <span className="text-brand">live forms.</span>
             </h1>
             <p className="text-sm text-muted-foreground max-w-md leading-relaxed">
-              Snap a sketch, watch RSI&apos;s vision pipeline reconstruct it as
+              Snap a sketch, and the vision pipeline reconstructs it as
               a typed, validated, shareable artifact. No drag-and-drop. No
               busywork.
             </p>
@@ -323,7 +323,7 @@ function Stat({
       {accent && (
         <div
           aria-hidden
-          className="absolute -top-5 -right-8 h-24 w-32 rsi-stripes opacity-40"
+          className="absolute -top-5 -right-8 h-24 w-32 brand-stripes opacity-40"
         />
       )}
       <CardContent className="relative space-y-4 p-5">

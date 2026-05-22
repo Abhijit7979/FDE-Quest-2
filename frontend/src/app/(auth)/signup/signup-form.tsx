@@ -33,7 +33,7 @@ export function SignupForm() {
         label="Email"
         autoComplete="email"
         required
-        placeholder="you@rsi.example"
+        placeholder="you@example.com"
       />
       <AuthField
         id="password"

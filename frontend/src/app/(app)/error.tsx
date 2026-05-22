@@ -26,7 +26,7 @@ export default function AppError({
         />
         <div
           aria-hidden
-          className="absolute -top-6 left-1/2 -translate-x-1/2 h-20 w-40 rsi-stripes opacity-20"
+          className="absolute -top-6 left-1/2 -translate-x-1/2 h-20 w-40 brand-stripes opacity-20"
         />
         <CardContent className="relative space-y-6 p-8 text-center">
           <div className="mx-auto flex size-14 items-center justify-center rounded-xl border border-destructive/30 bg-destructive/10">

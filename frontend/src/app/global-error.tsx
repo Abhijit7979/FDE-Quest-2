@@ -25,7 +25,7 @@ export default function GlobalError({
           <div className="relative w-full max-w-md space-y-8 text-center anim-rise">
             <div
               aria-hidden
-              className="absolute -top-10 left-1/2 -translate-x-1/2 h-24 w-48 rsi-stripes opacity-20"
+              className="absolute -top-10 left-1/2 -translate-x-1/2 h-24 w-48 brand-stripes opacity-20"
             />
 
             <div className="mx-auto flex size-16 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10">
@@ -40,7 +40,7 @@ export default function GlobalError({
                 Something <em className="text-destructive">broke</em>.
               </h1>
               <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                The RSI pipeline hit an unexpected snag. Try refreshing, or head
+                Something unexpected went wrong. Try refreshing, or head
                 back to base.
               </p>
             </div>

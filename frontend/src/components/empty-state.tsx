@@ -29,23 +29,23 @@ export function EmptyState({
           />
           <div
             aria-hidden
-            className="absolute -top-6 left-1/2 -translate-x-1/2 h-24 w-48 rsi-stripes opacity-30"
+            className="absolute -top-6 left-1/2 -translate-x-1/2 h-24 w-48 brand-stripes opacity-30"
           />
           {/* Side accent stripes */}
           <div
             aria-hidden
-            className="absolute top-1/3 -left-4 h-16 w-2 rsi-stripes opacity-20 rotate-90"
+            className="absolute top-1/3 -left-4 h-16 w-2 brand-stripes opacity-20 rotate-90"
           />
           <div
             aria-hidden
-            className="absolute top-1/2 -right-4 h-12 w-2 rsi-stripes opacity-15 rotate-90"
+            className="absolute top-1/2 -right-4 h-12 w-2 brand-stripes opacity-15 rotate-90"
           />
         </>
       )}
       {decoration === "minimal" && (
         <div
           aria-hidden
-          className="absolute top-8 -left-4 h-12 w-2 rsi-stripes opacity-20 rotate-90"
+          className="absolute top-8 -left-4 h-12 w-2 brand-stripes opacity-20 rotate-90"
         />
       )}
       <div className="relative space-y-3">

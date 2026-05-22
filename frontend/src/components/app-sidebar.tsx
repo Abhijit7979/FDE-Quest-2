@@ -96,7 +96,7 @@ export function AppSidebar({ email }: { email: string }) {
         <div className="mt-auto mx-3 mb-3 rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-3 overflow-hidden relative">
           <div
             aria-hidden
-            className="absolute -top-3 -right-6 h-20 w-24 rsi-stripes opacity-20"
+            className="absolute -top-3 -right-6 h-20 w-24 brand-stripes opacity-20"
           />
           <p className="relative font-mono-tech uppercase tracking-[0.18em] text-[10px] text-muted-foreground">
             Pipeline
