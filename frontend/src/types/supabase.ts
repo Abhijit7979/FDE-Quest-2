@@ -188,6 +188,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           display_name: string | null
           email: string
@@ -195,6 +196,7 @@ export type Database = {
           tour_completed_at: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           email: string
@@ -202,6 +204,7 @@ export type Database = {
           tour_completed_at?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string | null
           email?: string
@@ -238,6 +241,7 @@ export type Database = {
       }
     }
     Functions: {
+      ensure_profile_for_current_user: { Args: never; Returns: undefined }
       purge_expired_deleted_forms: { Args: never; Returns: number }
     }
     Enums: {

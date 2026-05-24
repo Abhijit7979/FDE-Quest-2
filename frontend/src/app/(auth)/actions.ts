@@ -45,7 +45,7 @@ export async function signUp(
 
   const origin = (await headers()).get("origin") ?? "";
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: { emailRedirectTo: `${origin}/auth/callback` },
@@ -55,9 +55,14 @@ export async function signUp(
     return { error: error.message };
   }
 
+  if (data.session) {
+    revalidatePath("/", "layout");
+    redirect("/home");
+  }
+
   return {
-    message:
-      "Check your email for a verification link to finish creating your account.",
+    error:
+      "Account created but sign-in failed. Try logging in, or contact support if this persists.",
   };
 }
 

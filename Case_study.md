@@ -11,7 +11,7 @@
 ## Client Problem Statement
 
 ### **Business context**  
-RSI Geotech runs field surveys across land and project sites. Head office plans each survey in Microsoft Word; site managers print booklets for crews; crews collect data on paper while also using professional gear (drones, GNSS, and similar). Completed booklets flow back through the site manager to head office, where data-entry staff transcribe answers into the database. That chain—Word → print → paper → return → manual entry—is slow, fragmented, and hard to scale.
+RSI Geotech runs field surveys across land and project sites. Head office plans each survey in Microsoft Word; site managers print booklets for crews; crews collect data on paper while also using professional gear (drones, GNSS, and similar). Completed booklets flow back through the site manager to head office, where data-entry staff transcribe answers into the database. That chain—Word → print → paper → return → manual entry—is slow, fragmented, and hard to scale. Time for this workflow is dependent on project size. lets assume 5 to 7 days survey time project.
 
 ### **How it works today**
 
@@ -145,5 +145,4 @@ For quality, I used Langfuse **LLM-as-a-Judge** with an OpenAI model to score ou
 **What I would improve next time**
 
 - Test more sketches earlier, with simple pass/fail checks, before building the full app.
-- Write a short how-to for RSI’s team (upload, review, publish, read answers)—not only docs for engineers.
-- Show the client a demo after each phase so progress is easy to see, not only in the codebase.
+- I have to improve in Evaluation methods for agents i build next.
